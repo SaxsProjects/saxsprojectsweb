@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Check, ArrowRight, ShieldCheck, Calendar, Rocket } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Check, ArrowRight, Calendar, Rocket } from 'lucide-react';
 
 export default function Pricing({ setActiveTab, setPrefilledQuote }) {
   // Calculator States

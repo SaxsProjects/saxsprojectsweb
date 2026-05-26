@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarRange, Sparkles, LayoutGrid, Cpu, Rocket, HelpCircle, CheckCircle, Zap } from 'lucide-react';
+import { CalendarRange, Sparkles, LayoutGrid, Cpu, Rocket, CheckCircle, Zap } from 'lucide-react';
 
 export default function HowWeWork() {
   const [activeStep, setActiveStep] = useState(0);

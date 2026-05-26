@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Code, Eye, ExternalLink, Award, FileText, CheckCircle2 } from 'lucide-react';
+import { Code, Eye, Award, CheckCircle2 } from 'lucide-react';
 
 export default function Portfolio() {
   const [activeTabMap, setActiveTabMap] = useState({
@@ -10,7 +10,7 @@ export default function Portfolio() {
   // Demo States
   const [stamps, setStamps] = useState(3);
   const [classesBooked, setClassesBooked] = useState([]);
-  const [memberRegistered, setMemberRegistered] = useState(false);
+
 
   const toggleTab = (project, tab) => {
     setActiveTabMap(prev => ({

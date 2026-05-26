@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChromeIcon } from 'lucide-react';
 
 const GOOGLE_CLIENT_ID = '424074914089-b6s5s0qdstmkrmh0l177qs8r60eiutia.apps.googleusercontent.com';
@@ -11,7 +11,7 @@ const getRedirectUri = () => {
   return 'https://saxsprojects.co.za/callback';
 };
 
-const GoogleLoginButton = ({ onSuccess, onError }) => {
+const GoogleLoginButton = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = () => {

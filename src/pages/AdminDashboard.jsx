@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart3, Users, FileText, DollarSign, TrendingUp, Settings, LogOut,
-  Plus, Trash2, Edit2, CheckCircle2, Clock, AlertCircle, Database, BookOpen, Send, MessageCircle
+  BarChart3, Users, FileText, DollarSign, TrendingUp, LogOut,
+  Plus, Trash2, Edit2, Clock, AlertCircle, Database, BookOpen, Send, MessageCircle
 } from 'lucide-react';
 import { auth } from '../../firebase-config';
-import { db } from '../../firebase-config';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
@@ -47,9 +46,7 @@ export default function AdminDashboard() {
   const [editingBlogId, setEditingBlogId] = useState(null);
 
   // Chat states
-  const [clientChats, setClientChats] = useState([]);
   const [selectedChatEmail, setSelectedChatEmail] = useState(null);
-  const [currentMessages, setCurrentMessages] = useState([]);
   const [adminReplyText, setAdminReplyText] = useState('');
 
   // Auto-load data on login

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, Mail, MessageCircle, Send, Calendar, Clock, CheckCircle2, X, Terminal, Server, Shield } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -144,7 +144,7 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
       });
 
       if (res.ok) {
-        const data = await res.json();
+        await res.json();
         console.log("Inquiry submitted successfully. Emails sent to admin and auto-reply to client.");
         setSubmitted(true);
         setShowInquiryModal(true);
@@ -250,10 +250,10 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Mon-Fri 9am-5pm SAST</p>
                 </div>
               </div>
-              <a href="mailto:Saxs.solutions25@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', textDecoration: 'none' }}>
-                <Mail size={18} style={{ color: 'var(--primary-glow)' }} />
+              <a href="mailto:saxs.solutions25@gmail.com" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', textDecoration: 'none' }}>
+                <Mail size={20} style={{ color: 'var(--primary-glow)' }} />
                 <div>
-                  <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Saxs.solutions25@gmail.com</p>
+                  <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>saxs.solutions25@gmail.com</p>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Auto-reply receipt guaranteed in 10 mins</p>
                 </div>
               </a>
@@ -581,7 +581,7 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>STATUS:</span> 250 OK - Message accepted for delivery</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>FROM:</span> web-system@saxsprojects.com</p>
-                <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>TO:</span> Saxs.solutions25@gmail.com</p>
+                <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>TO:</span> saxs.solutions25@gmail.com</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>SUBJECT:</span> New Project Lead Scope Inquiry: {name}</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>SECURITY:</span> TLSv1.3 Encrypted Handshake</p>
               </div>
@@ -696,7 +696,7 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1rem' }}>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>CALENDAR:</span> Invite Dispatched Successfully</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>RECIPIENT:</span> {bookingEmail || email}</p>
-                <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>CC:</span> Saxs.solutions25@gmail.com</p>
+                <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>CC:</span> saxs.solutions25@gmail.com</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>EVENT:</span> 15-Min Technical Scope Consultation</p>
                 <p><span style={{ color: 'var(--primary-glow)', fontWeight: 'bold' }}>DATE/TIME:</span> {selectedDay} @ {selectedTime} SAST</p>
               </div>

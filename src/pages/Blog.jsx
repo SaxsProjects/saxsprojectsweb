@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BookOpen, Calendar, Clock, ArrowLeft, Tag, Loader } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:5000/api';

@@ -17,5 +17,17 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Some files import React for older tooling; ignore unused React warnings.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^React$' }],
+    },
+  },
+  // Backend (Node) files: enable Node globals to avoid false-positive 'process'/'Buffer' undefined errors
+  {
+    files: ['backend/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+      parserOptions: { ecmaVersion: 2022 },
+    },
   },
 ])

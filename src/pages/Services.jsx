@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, ShoppingBag, Terminal, Smartphone, Check, Clock, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Monitor, Terminal, Smartphone, Check, Clock, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function Services({ setActiveTab }) {
   const serviceList = [

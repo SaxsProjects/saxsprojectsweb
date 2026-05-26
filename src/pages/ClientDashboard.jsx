@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, FileText, Send, CheckCircle2, MessageSquare, Clock, DollarSign, User, Plus, Trash2, ArrowRight, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { Lock, Send, CheckCircle2, MessageSquare, Clock, DollarSign, User, Plus, Trash2, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase-config';
 
