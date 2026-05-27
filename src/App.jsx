@@ -59,7 +59,7 @@ export default function App() {
           <nav style={{ display: 'none', gap: '1.5rem', alignItems: 'center' }} className="desktop-nav">
             <button onClick={() => handleTabChange('home')} style={{ background: 'transparent', border: 'none', color: activeTab === 'home' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Home</button>
             <button onClick={() => handleTabChange('tech-solutions')} style={{ background: 'transparent', border: 'none', color: activeTab === 'tech-solutions' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Tech Solutions</button>
-            <button onClick={() => handleTabChange('student-services')} style={{ background: 'transparent', border: 'none', color: activeTab === 'student-services' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Student Services</button>
+            <button onClick={() => handleTabChange('learning-support')} style={{ background: 'transparent', border: 'none', color: activeTab === 'learning-support' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Learning Support</button>
             <button onClick={() => handleTabChange('about')} style={{ background: 'transparent', border: 'none', color: activeTab === 'about' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>About</button>
             <button onClick={() => handleTabChange('contact')} className="neon-glow-btn" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem' }}>Get a Quote</button>
           </nav>
@@ -81,7 +81,7 @@ export default function App() {
             <div className="container" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'flex-start' }}>
               <button onClick={() => handleTabChange('home')} style={{ background: 'transparent', border: 'none', color: activeTab === 'home' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Home</button>
               <button onClick={() => handleTabChange('tech-solutions')} style={{ background: 'transparent', border: 'none', color: activeTab === 'tech-solutions' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Tech Solutions</button>
-              <button onClick={() => handleTabChange('student-services')} style={{ background: 'transparent', border: 'none', color: activeTab === 'student-services' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Student Services</button>
+              <button onClick={() => handleTabChange('learning-support')} style={{ background: 'transparent', border: 'none', color: activeTab === 'learning-support' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Learning Support</button>
               <button onClick={() => handleTabChange('about')} style={{ background: 'transparent', border: 'none', color: activeTab === 'about' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>About</button>
               <button onClick={() => handleTabChange('contact')} className="neon-glow-btn" style={{ width: '100%', justifyContent: 'center' }}>Get a Quote</button>
             </div>
@@ -93,7 +93,7 @@ export default function App() {
       <main style={{ flexGrow: 1 }}>
         {activeTab === 'home' && <Home setActiveTab={handleTabChange} />}
         {activeTab === 'tech-solutions' && <TechSolutions setActiveTab={handleTabChange} />}
-        {activeTab === 'student-services' && <StudentServices setActiveTab={handleTabChange} />}
+        {activeTab === 'learning-support' && <StudentServices setActiveTab={handleTabChange} />}
         {activeTab === 'services' && <Services setActiveTab={handleTabChange} />}
         {activeTab === 'how-we-work' && <HowWeWork />}
         {activeTab === 'pricing' && <Pricing setActiveTab={handleTabChange} setPrefilledQuote={setPrefilledQuote} />}

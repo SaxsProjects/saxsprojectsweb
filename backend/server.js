@@ -382,7 +382,7 @@ IMPORTANT CONSTRAINT: You ONLY answer questions about SaxsProjects and our digit
 
 Company Information:
 - SaxsProjects: Premium digital architecture and custom software solutions
-- Founded by IT Student with focus on high-quality, fast delivery
+- Founded by qualified software developer with focus on high-quality, fast delivery
 - Technologies: React, Vite, Node.js, MongoDB, Firebase, Google APIs
 - Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, Saxs.solutions25@gmail.com
 

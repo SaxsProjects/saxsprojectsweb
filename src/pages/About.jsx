@@ -31,8 +31,8 @@ export default function About() {
     },
     {
       year: "2024-2026",
-      milestone: "University Tutor & Student Support",
-      description: "Served as lecturer assistant and student support specialist"
+      milestone: "Academic Mentor & Educator",
+      description: "Served as lecturer assistant and mentor, helping students master core concepts and develop problem-solving skills"
     },
     {
       year: "2024",

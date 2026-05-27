@@ -308,68 +308,6 @@ export default function Home({ setActiveTab }) {
         </div>
       </section>
 
-      {/* Testimonials Section - Dual Tabs */}
-      <section className="section-padding" style={{ backgroundColor: 'var(--bg-deep)', borderTop: '1px solid var(--border-color)' }}>
-        <div className="container">
-          <div className="section-header">
-            <span className="section-subtitle">Feedback</span>
-            <h2>What People Say</h2>
-            <p>Real experiences from clients and students we've helped.</p>
-          </div>
-
-          {/* Testimonial Tabs */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setActiveServiceTab('tech')}
-              style={{
-                padding: '0.5rem 1.25rem',
-                borderRadius: '50px',
-                border: activeServiceTab === 'tech' ? 'none' : '1px solid var(--border-color)',
-                background: activeServiceTab === 'tech' ? 'var(--primary-glow)' : 'transparent',
-                color: activeServiceTab === 'tech' ? 'white' : 'var(--text-primary)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '0.85rem'
-              }}
-            >
-              Tech Clients
-            </button>
-            <button
-              onClick={() => setActiveServiceTab('student')}
-              style={{
-                padding: '0.5rem 1.25rem',
-                borderRadius: '50px',
-                border: activeServiceTab === 'student' ? 'none' : '1px solid var(--border-color)',
-                background: activeServiceTab === 'student' ? 'var(--primary-glow)' : 'transparent',
-                color: activeServiceTab === 'student' ? 'white' : 'var(--text-primary)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontSize: '0.85rem'
-              }}
-            >
-              Students
-            </button>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            {allTestimonials.map((t, idx) => (
-              <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '0.2rem' }}>
-                  {[...Array(t.rating)].map((_, i) => (
-                    <span key={i} style={{ color: '#FFB020', fontSize: '1.2rem' }}>★</span>
-                  ))}
-                </div>
-                <p style={{ fontSize: '1rem', fontStyle: 'italic', color: 'var(--text-secondary)', flexGrow: 1 }}>"{t.quote}"</p>
-                <div>
-                  <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>{t.author}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Final CTA Section */}
       <section className="section-padding container" style={{ textAlign: 'center' }}>
         <div className="glass-card" style={{ padding: '4rem 2rem', maxWidth: '850px', margin: '0 auto' }}>

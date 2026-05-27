@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Code, Users, CheckCircle, ArrowRight, Sparkles, MessageSquare } from 'lucide-react';
+import { Lightbulb, Code, Wrench, BookOpen, CheckCircle, ArrowRight, MessageSquare } from 'lucide-react';
 
 export default function StudentServices({ setActiveTab }) {
   const [selectedSubject, setSelectedSubject] = useState(null);
@@ -8,47 +8,47 @@ export default function StudentServices({ setActiveTab }) {
   const services = [
     {
       icon: <BookOpen size={40} />,
-      title: "Assignment & Essay Writing Assistance",
-      description: "Professional help drafting, editing, and structuring academic work across subjects",
+      title: "Academic Tutoring & Concept Guidance",
+      description: "One-on-one tutoring to help you understand complex concepts and master academic subjects",
       benefits: [
-        "Expert guidance from university tutor",
-        "Plagiarism-free original content",
-        "Fast turnaround times"
+        "Personalized learning approach",
+        "Clear concept explanations",
+        "Problem-solving strategies"
       ],
-      price: "From R150 ZAR per page"
+      price: "From R200 ZAR per hour"
     },
     {
       icon: <Code size={40} />,
-      title: "Project Development & Coding Help",
-      description: "Assistance with coding projects, debugging, and academic software assignments",
+      title: "Programming & Coding Mentorship",
+      description: "Expert guidance on coding concepts, debugging techniques, and software development best practices",
       benefits: [
-        "Expert debugging and optimization",
-        "Code review and best practices",
-        "Step-by-step explanations"
+        "Code review and optimization",
+        "Best practices teaching",
+        "Problem-solving methodology"
       ],
       price: "From R300 ZAR per hour"
     },
     {
-      icon: <Users size={40} />,
-      title: "Microsoft Office Suite Installation",
-      description: "Full installation of Word, Excel, PowerPoint, Outlook, etc. on any device",
+      icon: <Lightbulb size={40} />,
+      title: "Assignment Strategy & Guidance",
+      description: "Learn how to approach, structure, and complete assignments with academic integrity at the core",
       benefits: [
-        "Quick and professional setup",
-        "All components installed correctly",
-        "License activation support"
+        "Research methodology",
+        "Citation and referencing support",
+        "Writing techniques and structure"
       ],
-      price: "From R250 ZAR"
+      price: "From R150 ZAR per session"
     },
     {
-      icon: <Sparkles size={40} />,
-      title: "Microsoft App Activation Support",
-      description: "Help activating and configuring Microsoft 365 and related apps",
+      icon: <Wrench size={40} />,
+      title: "Tech Support & Software Setup",
+      description: "Professional installation and configuration of Microsoft Office, development tools, and tech support",
       benefits: [
-        "Smooth activation process",
-        "Full feature unlocked",
-        "Post-setup support"
+        "Quick installation and setup",
+        "All components configured",
+        "Technical support included"
       ],
-      price: "From R200 ZAR"
+      price: "From R250 ZAR"
     }
   ];
 
@@ -67,21 +67,21 @@ export default function StudentServices({ setActiveTab }) {
     "Psychology"
   ];
 
-  const studentTestimonials = [
+  const testimonials = [
     {
-      quote: "SaxsProjects helped me understand my coding assignment so much better. The step-by-step explanation was exactly what I needed.",
+      quote: "The tutoring sessions helped me understand programming concepts that I struggled with. Now I can write my own code with confidence.",
       author: "Lindy M.",
       field: "Computer Science",
       rating: 5
     },
     {
-      quote: "I was struggling with my essay structure, but the guidance here made it clear and organized. Highly recommended!",
+      quote: "I learned the proper way to structure essays and cite sources correctly. This knowledge will help me throughout my academic career.",
       author: "Thembi S.",
       field: "English Literature",
       rating: 5
     },
     {
-      quote: "Quick installation of Microsoft Office and everything worked perfectly. Professional service!",
+      quote: "Professional tech support made everything easy. My Microsoft Office is set up perfectly and I got help understanding the tools.",
       author: "Kabelo T.",
       field: "Business Admin",
       rating: 5
@@ -102,30 +102,30 @@ export default function StudentServices({ setActiveTab }) {
   };
 
   return (
-    <div className="student-services-container fade-in">
+    <div className="learning-support-container fade-in">
       {/* Hero Section */}
       <section className="hero-section container" style={{ padding: '6rem 0 4rem', textAlign: 'center', position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-10%', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(0, 102, 255, 0.08) 0%, transparent 70%)', filter: 'blur(40px)', zIndex: -1 }}></div>
 
         <span className="section-subtitle" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto 1.5rem', background: 'rgba(0, 102, 255, 0.05)', padding: '0.5rem 1.25rem', borderRadius: '50px', border: '1px solid rgba(0, 102, 255, 0.15)' }}>
           <BookOpen size={14} style={{ color: 'var(--primary-glow)' }} />
-          STUDENT ACADEMIC & TECH SUPPORT
+          ACADEMIC & TECH SUPPORT
         </span>
 
         <h1 style={{ fontSize: '3.5rem', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
-          Struggling with Assignments or Tech? <span className="gradient-text">We've Got You Covered.</span>
+          Master Your Skills & <span className="gradient-text">Succeed Academically</span>
         </h1>
 
         <p style={{ fontSize: '1.25rem', maxWidth: '750px', margin: '0 auto 2.5rem', color: 'var(--text-secondary)' }}>
-          Professional academic assistance and technology support from a university tutor and qualified developer. Fast, confidential, and affordable help for South African students.
+          Professional tutoring, coding mentorship, and tech support from a qualified developer and educator. Learn with integrity and build real skills that matter.
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="https://wa.me/27613991212?text=Hi SaxsProjects! I need help with my assignments." target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <a href="https://wa.me/27613991212?text=Hi! I'd like to learn more about your tutoring services." target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <MessageSquare size={16} /> Chat on WhatsApp
           </a>
           <button onClick={() => setActiveTab('contact')} className="neon-outline-btn">
-            Get a Free Quote <ArrowRight size={16} />
+            Get More Info <ArrowRight size={16} />
           </button>
         </div>
 
@@ -134,29 +134,29 @@ export default function StudentServices({ setActiveTab }) {
           <div className="trust-badge">
             <CheckCircle size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Plagiarism-Free</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>100% Original Work</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Academic Integrity</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Teaching & Learning Focus</p>
             </div>
           </div>
           <div className="trust-badge">
             <CheckCircle size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Confidential</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Your Privacy Protected</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Expert Guidance</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Qualified Mentor & Developer</p>
             </div>
           </div>
           <div className="trust-badge">
             <CheckCircle size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Secure Payments</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Multiple Payment Methods</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Personalized Learning</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Tailored to Your Needs</p>
             </div>
           </div>
           <div className="trust-badge">
             <CheckCircle size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Fast Turnaround</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>24-48 Hour Delivery</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Available Now</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Quick Response & Support</p>
             </div>
           </div>
         </div>
@@ -166,9 +166,9 @@ export default function StudentServices({ setActiveTab }) {
       <section className="section-padding" style={{ backgroundColor: 'var(--bg-deep)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)' }}>
         <div className="container">
           <div className="section-header">
-            <span className="section-subtitle">Services & Support</span>
-            <h2>What We Offer</h2>
-            <p>Comprehensive student support covering academic writing, coding projects, and tech installations.</p>
+            <span className="section-subtitle">Our Services</span>
+            <h2>How We Support Your Success</h2>
+            <p>Comprehensive guidance that builds your skills and promotes academic integrity.</p>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
@@ -182,7 +182,7 @@ export default function StudentServices({ setActiveTab }) {
                   {s.description}
                 </p>
                 <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', marginBottom: '1.5rem', flexGrow: 1 }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1rem' }}>Key Benefits</p>
+                  <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '1rem' }}>What You'll Get</p>
                   <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', listStyle: 'none' }}>
                     {s.benefits.map((benefit, i) => (
                       <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -194,8 +194,8 @@ export default function StudentServices({ setActiveTab }) {
                 </div>
                 <div>
                   <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-glow)', marginBottom: '1rem' }}>{s.price}</p>
-                  <a href="https://wa.me/27613991212?text=I'm interested in your student services" target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    Get Help Now
+                  <a href="https://wa.me/27613991212?text=I'm interested in learning more about your services" target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    Learn More
                   </a>
                 </div>
               </div>
@@ -208,25 +208,25 @@ export default function StudentServices({ setActiveTab }) {
       <section className="section-padding container">
         <div className="section-header">
           <span className="section-subtitle">Simple Process</span>
-          <h2>How It Works</h2>
-          <p>Three simple steps to get the help you need.</p>
+          <h2>Getting Started</h2>
+          <p>Three simple steps to begin your learning journey.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '900px', margin: '0 auto' }}>
           <div className="glass-card" style={{ textAlign: 'center' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, margin: '0 auto 1.5rem' }}>1</div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Contact Us</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Reach out via WhatsApp or our contact form with your details and what you need help with.</p>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Reach Out</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>Contact us via WhatsApp or email with your learning goals and areas where you need support.</p>
           </div>
           <div className="glass-card" style={{ textAlign: 'center' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, margin: '0 auto 1.5rem' }}>2</div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Describe Your Need</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Share your assignment, coding challenge, or tech problem. We'll discuss scope and timeline.</p>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Discuss Your Needs</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>We understand your challenges and create a personalized learning plan tailored to your goals.</p>
           </div>
           <div className="glass-card" style={{ textAlign: 'center' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, margin: '0 auto 1.5rem' }}>3</div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Get Fast Support</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Receive professional assistance with quick turnaround. We're here to help you succeed.</p>
+            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Learn & Grow</h3>
+            <p style={{ color: 'var(--text-secondary)' }}>Receive expert mentorship and build real skills with integrity. You'll understand your work, not just complete it.</p>
           </div>
         </div>
       </section>
@@ -237,7 +237,7 @@ export default function StudentServices({ setActiveTab }) {
           <div className="section-header">
             <span className="section-subtitle">Expertise</span>
             <h2>Subjects & Fields We Cover</h2>
-            <p>Expert support across a wide range of academic disciplines.</p>
+            <p>Expert tutoring and mentorship across a wide range of academic disciplines and technical skills.</p>
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', justifyContent: 'center' }}>
@@ -265,38 +265,12 @@ export default function StudentServices({ setActiveTab }) {
         </div>
       </section>
 
-      {/* Student Testimonials */}
-      <section className="section-padding container">
-        <div className="section-header">
-          <span className="section-subtitle">Student Feedback</span>
-          <h2>What Students Say</h2>
-          <p>Real feedback from students who've used our services.</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-          {studentTestimonials.map((t, idx) => (
-            <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', gap: '0.2rem' }}>
-                {[...Array(t.rating)].map((_, i) => (
-                  <span key={i} style={{ color: '#FFB020', fontSize: '1.2rem' }}>★</span>
-                ))}
-              </div>
-              <p style={{ fontSize: '1rem', fontStyle: 'italic', color: 'var(--text-secondary)', flexGrow: 1 }}>"{t.quote}"</p>
-              <div>
-                <h4 style={{ fontSize: '1rem', fontWeight: 600 }}>{t.author}</h4>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{t.field} Student</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Quick Contact Form */}
       <section className="section-padding" style={{ backgroundColor: 'var(--bg-deep)', borderTop: '1px solid var(--border-color)' }}>
         <div className="container" style={{ maxWidth: '600px' }}>
           <div className="section-header">
-            <h2>Get Started Today</h2>
-            <p>Fill in the form below or chat with us on WhatsApp for immediate assistance.</p>
+            <h2>Start Your Learning Journey</h2>
+            <p>Fill in the form below or chat with us on WhatsApp to discuss how we can help you succeed.</p>
           </div>
 
           <form onSubmit={handleFormSubmit} className="glass-card">
@@ -345,7 +319,7 @@ export default function StudentServices({ setActiveTab }) {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Service Needed</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>What You Need Help With</label>
               <select
                 name="service"
                 value={formData.service}
@@ -364,20 +338,20 @@ export default function StudentServices({ setActiveTab }) {
                 }}
               >
                 <option value="">Select a service</option>
-                <option value="Assignment Writing">Assignment & Essay Writing</option>
-                <option value="Coding Help">Project Development & Coding Help</option>
-                <option value="MS Office Install">Microsoft Office Installation</option>
-                <option value="MS Office Activation">Microsoft App Activation</option>
+                <option value="Academic Tutoring">Academic Tutoring & Concept Guidance</option>
+                <option value="Coding Mentorship">Programming & Coding Mentorship</option>
+                <option value="Assignment Strategy">Assignment Strategy & Guidance</option>
+                <option value="Tech Support">Tech Support & Software Setup</option>
               </select>
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Brief Message</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Tell Us More</label>
               <textarea
                 name="message"
                 value={formData.message}
                 onChange={handleFormChange}
-                placeholder="Tell us more about what you need"
+                placeholder="Describe your learning goals and what you'd like to work on"
                 required
                 style={{
                   width: '100%',
@@ -401,59 +375,7 @@ export default function StudentServices({ setActiveTab }) {
           </form>
         </div>
       </section>
-
-      {/* FAQ Section */}
-      <section className="section-padding container">
-        <div className="section-header">
-          <span className="section-subtitle">Questions?</span>
-          <h2>Frequently Asked Questions</h2>
-        </div>
-
-        <div style={{ maxWidth: '700px', margin: '0 auto', display: 'grid', gap: '2rem' }}>
-          <div className="glass-card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Is the work original and plagiarism-free?</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Absolutely. All work is original and written from scratch. We provide plagiarism reports upon request.</p>
-          </div>
-
-          <div className="glass-card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>How fast can you deliver?</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Most assignments are completed within 24-48 hours. Urgent requests can be accommodated for an additional fee.</p>
-          </div>
-
-          <div className="glass-card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>What subjects do you cover?</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>We cover Mathematics, Computer Science, English, Business, Accounting, IT, Engineering, Physics, Chemistry, and more. Ask if your subject isn't listed.</p>
-          </div>
-
-          <div className="glass-card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>How do I pay?</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>We accept bank transfers, EFT, and mobile payment methods. Payment is secure and confidential.</p>
-          </div>
-
-          <div className="glass-card">
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.75rem' }}>Is my privacy protected?</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>Yes. Your information and work are completely confidential. We never share client details.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="section-padding container" style={{ textAlign: 'center' }}>
-        <div className="glass-card" style={{ padding: '4rem 2rem', maxWidth: '850px', margin: '0 auto' }}>
-          <h2 style={{ fontSize: '2.25rem', marginBottom: '1rem' }}>Ready to get the support you need?</h2>
-          <p style={{ fontSize: '1.1rem', maxWidth: '600px', margin: '0 auto 2rem', color: 'var(--text-secondary)' }}>
-            Chat with us on WhatsApp for immediate assistance, or fill out a quick form and we'll get back to you within the hour.
-          </p>
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="https://wa.me/27613991212?text=Hi! I need help with my assignments." target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none' }}>
-              <MessageSquare size={16} style={{ marginRight: '0.5rem' }} /> WhatsApp Now
-            </a>
-            <button onClick={() => setActiveTab('contact')} className="neon-outline-btn">
-              Use Contact Form
-            </button>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
+
