@@ -24,14 +24,31 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
   const [showInquiryModal, setShowInquiryModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
-  const daysList = [
-    { day: "Mon", date: "May 25" },
-    { day: "Tue", date: "May 26" },
-    { day: "Wed", date: "May 27" },
-    { day: "Thu", date: "May 28" },
-    { day: "Fri", date: "May 29" },
-    { day: "Sat", date: "May 30" }
-  ];
+  // Generate dynamic daysList - today and tomorrow only
+  const generateAvailableDays = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    const formatDate = (date) => {
+      const dayName = dayNames[date.getDay()];
+      const monthName = monthNames[date.getMonth()];
+      const dateNum = date.getDate();
+      return { day: dayName, date: `${monthName} ${dateNum}`, fullDate: date };
+    };
+    
+    return [
+      formatDate(today),
+      formatDate(tomorrow)
+    ];
+  };
+
+  const daysList = generateAvailableDays();
 
   const timeSlots = ["09:30", "10:30", "11:30", "12:30", "13:30", "14:30", "15:30", "16:30"];
 
@@ -51,15 +68,32 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
 
   // Check if a time slot is available for the selected day
   const isTimeAvailable = (time) => {
-    // All future dates allow all times
-    // For today (May 23), disable times that have already passed
-    if (selectedDay && selectedDay.includes('May') && selectedDay.includes('23')) {
+    if (!selectedDay) return false;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find which day is selected (today or tomorrow)
+    const selectedDayObj = daysList.find(d => d.date === selectedDay);
+    if (!selectedDayObj) return true;
+    
+    const selectedDateObj = selectedDayObj.fullDate;
+    const isToday = selectedDateObj.getTime() === today.getTime();
+    
+    // If it's today, check if time has passed
+    if (isToday) {
+      const now = new Date();
       const [slotHour, slotMinute] = time.split(':').map(Number);
-      const [currentHour, currentMinute] = [getCurrentDateTime().hour, getCurrentDateTime().minute];
-      // Time is available if it's later than current time
-      return slotHour > currentHour || (slotHour === currentHour && slotMinute > currentMinute);
+      const slotTime = new Date();
+      slotTime.setHours(slotHour, slotMinute, 0, 0);
+      
+      // Time is available if it's 30 minutes in the future or more
+      const thirtyMinutesFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+      return slotTime >= thirtyMinutesFromNow;
     }
-    return true; // All other dates have all times available
+    
+    // Tomorrow and beyond - all times available
+    return true;
   };
 
   // Fetch booked slots when date is selected
@@ -424,8 +458,8 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
 
                 {/* Day selector */}
                 <div>
-                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-glow)', textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '0.75rem' }}>1. Select Available Day (Mon-Sat):</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.5rem' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-glow)', textTransform: 'uppercase', letterSpacing: '0.05rem', marginBottom: '0.75rem' }}>1. Select Available Day (Today or Tomorrow):</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
                     {daysList.map((d, i) => (
                       <button 
                         key={i}
@@ -459,8 +493,8 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                       {timeSlots.map((time, idx) => {
                         const booked = isSlotBooked(time);
-                        const pastTime = !isTimeAvailable(time) && selectedDay && selectedDay.includes('May') && selectedDay.includes('23');
-                        const unavailable = booked || pastTime;
+                        const timeNotAvailable = !isTimeAvailable(time);
+                        const unavailable = booked || timeNotAvailable;
                         
                         return (
                           <button 
@@ -493,7 +527,7 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
                               textDecoration: unavailable ? 'line-through' : 'none',
                               pointerEvents: unavailable ? 'none' : 'auto'
                             }}
-                            title={booked ? 'This slot is already booked' : pastTime ? 'This time has passed' : `Book ${time}`}
+                            title={booked ? 'This slot is already booked' : 'Book this time'}
                           >
                             {time}
                             {unavailable && <div style={{ fontSize: '0.6rem', marginTop: '0.2rem', opacity: 0.8 }}>{booked ? 'Booked' : 'Past'}</div>}

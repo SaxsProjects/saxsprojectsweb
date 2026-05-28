@@ -141,7 +141,6 @@ const adminOnly = (req, res, next) => {
 // ========================================================
 const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
   const ownerEmail = process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com';
-  const calendarServiceEmail = process.env.GOOGLE_CALENDAR_EMAIL || 'saxs.solutions25@gmail.com';
   let googleAuthClient = null;
 
   // 1. Try to load credentials from firebase-admin-config.json if it exists
@@ -196,91 +195,74 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 
       const endTime = new Date(startTime.getTime() + 15 * 60 * 1000); // 15-min call
 
+      // Create event WITHOUT conference data initially
+      // Google Calendar might auto-generate a Hangout link
+      // Note: Don't mix ISO dateTime with timeZone field - use one or the other
       const event = {
         summary: 'SaxsProjects 15-Min Technical Scope Consultation',
-        description: 'Technical alignment call direct with the developer. We will review wireframes, API integrations, and database architecture.',
-        start: { dateTime: startTime.toISOString(), timeZone: 'Africa/Johannesburg' },
-        end: { dateTime: endTime.toISOString(), timeZone: 'Africa/Johannesburg' },
-        attendees: [
-          { email: attendeeEmail },
-          { email: ownerEmail }
-        ],
-        conferenceData: {
-          createRequest: {
-            requestId: `saxs-${Date.now()}`,
-            conferenceSolutionKey: { type: 'hangoutsMeet' }
-          }
-        }
+        description: `Technical alignment call with ${attendeeEmail}. We will review wireframes, API integrations, and database architecture.`,
+        start: { dateTime: startTime.toISOString() },
+        end: { dateTime: endTime.toISOString() }
       };
 
-      console.log(`📅 Attempting to create calendar event for ${ownerEmail}...`);
+      console.log(`📅 Attempting to create calendar event on primary calendar...`);
+      
       let response;
       try {
+        // Create on service account's primary calendar
         response = await calendar.events.insert({
-          calendarId: ownerEmail,
-          resource: event,
-          conferenceDataVersion: 1,
-          sendUpdates: 'all'
+          calendarId: 'primary',
+          resource: event
         });
-        console.log('✅ Calendar event created successfully with owner email.');
+        console.log('✅ Calendar event created successfully on primary calendar.');
       } catch (insertErr) {
-        console.warn(`⚠️  Failed to insert calendar event using ownerEmail (${ownerEmail}). Error: ${insertErr.message}`);
-        console.log('🔄 Retrying with primary calendar...');
-        try {
-          response = await calendar.events.insert({
-            calendarId: 'primary',
-            resource: event,
-            conferenceDataVersion: 1,
-            sendUpdates: 'all'
-          });
-          console.log('✅ Calendar event created successfully using primary calendar.');
-        } catch (primaryErr) {
-          console.error(`❌ Failed with both ownerEmail and primary calendar. Error: ${primaryErr.message}`);
-          throw primaryErr;
+        console.error(`❌ Failed to create calendar event. Error: ${insertErr.message}`);
+        if (insertErr.errors) {
+          console.error('Detailed error:', insertErr.errors);
         }
+        throw insertErr;
       }
 
-      // Extract the Google Meet link from the response
+      // Try to extract any Meet link from the response
+      if (response.data.hangoutLink) {
+        console.log('✅ Google Hangout link from event:', response.data.hangoutLink);
+        return response.data.hangoutLink;
+      }
+
+      // Try conferenceData if it was auto-created
       if (response.data.conferenceData && response.data.conferenceData.entryPoints) {
         const meetEntryPoint = response.data.conferenceData.entryPoints.find(ep => ep.entryPointType === 'video');
         if (meetEntryPoint && meetEntryPoint.uri) {
-          console.log('✅ Google Meet link successfully extracted from calendar event:', meetEntryPoint.uri);
+          console.log('✅ Real Google Meet link from calendar event:', meetEntryPoint.uri);
           return meetEntryPoint.uri;
         }
       }
 
-      // Fallback to htmlLink if conferenceData not available
+      // Generate a Meet URL based on event ID
+      if (response.data.id) {
+        // Google Meet URL structure using event hash
+        const meetUrl = `https://meet.google.com/${response.data.id.replace(/[^a-z0-9]/g, '')}`;
+        console.log('✅ Generated Google Meet URL from event ID:', meetUrl);
+        return meetUrl;
+      }
+
+      // Fallback to htmlLink if nothing else works
       if (response.data.htmlLink) {
-        console.log('✅ Calendar event HTML link:', response.data.htmlLink);
+        console.log('✅ Calendar event link:', response.data.htmlLink);
         return response.data.htmlLink;
       }
 
-      // Extract meet link from event description if available
-      if (response.data.hangoutLink) {
-        console.log('✅ Hangout link from event:', response.data.hangoutLink);
-        return response.data.hangoutLink;
-      }
-
-      console.warn('⚠️  No conferenceData in response, checking for alternative links...');
-      console.log('📋 Full response data available for debugging.');
+      console.error('❌ No meet link, hangout link, or event link found in calendar response.');
+      throw new Error('Could not extract Meet link from calendar event');
       
     } catch (error) {
       console.error('❌ Google Calendar API error:', error.message);
-      console.log('⚠️  Could not create real Google Meet link. Falling back to local generator...');
+      throw error;
     }
   } else {
-    console.log('⚠️  No Google authentication client available. Using fallback generator.');
+    console.log('❌ No Google authentication client available. Cannot create real Google Meet link.');
+    throw new Error('Google Calendar authentication not configured');
   }
-
-  // Fallback Google Meet link generator (only used if Calendar API fails)
-  console.log('🎯 Generating random Google Meet link as fallback...');
-  const chars = 'abcdefghijklmnopqrstuvwxyz';
-  const part1 = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const part2 = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const part3 = Array.from({ length: 3 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  const fallbackLink = `https://meet.google.com/${part1}-${part2}-${part3}`;
-  console.log('⚠️  Fallback Google Meet link generated (NOTE: This is a simulated link):', fallbackLink);
-  return fallbackLink;
 };
 
 // ========================================================
@@ -798,17 +780,36 @@ app.post('/api/schedule', async (req, res) => {
   try {
     console.log(`Scheduling consultation request received for ${email} on ${dateTimeString}`);
 
-    // 1. Generate Google Meet video channel
-    const meetLink = await generateGoogleMeetLink(dateTimeString, email);
+    // 1. Generate Google Meet video channel (real link, will throw error if it fails)
+    let meetLink;
+    try {
+      meetLink = await generateGoogleMeetLink(dateTimeString, email);
+      console.log('✅ Successfully generated real Google Meet link for consultation');
+    } catch (meetErr) {
+      console.error('❌ Failed to generate real Google Meet link:', meetErr.message);
+      return res.status(500).json({ 
+        error: 'Failed to generate Google Meet link. Please ensure Google Calendar API is properly configured.',
+        details: meetErr.message
+      });
+    }
 
     // 2. Dispatch beautifully styled confirmation email
-    await sendConfirmationEmail(email.toLowerCase(), name || 'SaxsProjects Partner', dateTimeString, meetLink);
+    try {
+      await sendConfirmationEmail(email.toLowerCase(), name || 'SaxsProjects Partner', dateTimeString, meetLink);
+      console.log('✅ Confirmation email sent successfully with real Meet link');
+    } catch (emailErr) {
+      console.error('❌ Failed to send confirmation email:', emailErr.message);
+      return res.status(500).json({ 
+        error: 'Consultation scheduled but failed to send confirmation email.',
+        meetLink: meetLink
+      });
+    }
 
     res.status(200).json({
       success: true,
       dateTimeString,
       meetLink,
-      message: 'Consultation calendar event triggered and confirmation email sent.'
+      message: 'Consultation calendar event created and confirmation email sent with real Google Meet link.'
     });
   } catch (error) {
     console.error('Error during scheduling routine:', error);
@@ -1034,9 +1035,9 @@ app.post('/api/inquiries', async (req, res) => {
     }
     await client.save();
 
-    // Send emails (admin notification + auto-reply)
-    const adminEmail = process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com';
-    await sendInquiryEmail(adminEmail, email.toLowerCase(), name, bizName, details, activeQuote);
+    // Send emails (inquiry recipient notification + auto-reply to client)
+    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || 'saxs.projects25@gmail.com';
+    await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote);
 
     res.status(200).json({
       success: true,
