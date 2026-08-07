@@ -38,6 +38,24 @@ export default function AdminDashboard() {
   const [newClientEmail, setNewClientEmail] = useState('');
   const [newClientName, setNewClientName] = useState('');
 
+  // Project form states
+  const [projClientEmail, setProjClientEmail] = useState('');
+  const [projTitle, setProjTitle] = useState('');
+  const [projTier, setProjTier] = useState('Standard Website');
+  const [projProgress, setProjProgress] = useState(0);
+  const [projStatus, setProjStatus] = useState('In Progress');
+  const [projCost, setProjCost] = useState('R2,800 ZAR');
+  const [projTimeline, setProjTimeline] = useState('10 Days');
+  const [editingProject, setEditingProject] = useState(null);
+
+  // Invoice form states
+  const [invClientEmail, setInvClientEmail] = useState('');
+  const [invInvoiceId, setInvInvoiceId] = useState('');
+  const [invTitle, setInvTitle] = useState('');
+  const [invDesc, setInvDesc] = useState('');
+  const [invAmount, setInvAmount] = useState('');
+  const [invStatus, setInvStatus] = useState('PENDING');
+
   // Blog form states
   const [blogTitle, setBlogTitle] = useState('');
   const [blogCategory, setBlogCategory] = useState('General');
@@ -235,6 +253,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteClient = async (clientEmail) => {
+    if (!window.confirm(`Are you sure you want to delete client ${clientEmail}?`)) return;
+    
+    if (!auth.currentUser) return;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/admin/clients/${encodeURIComponent(clientEmail)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setSuccess('Client deleted successfully');
+        loadDashboardData();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to delete client');
+      }
+    } catch (error) {
+      setError('Error deleting client: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeleteProject = async (projectId) => {
     if (!window.confirm('Are you sure you want to delete this project?')) return;
     
@@ -256,6 +303,182 @@ export default function AdminDashboard() {
       }
     } catch (error) {
       setError('Error deleting project: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveProject = async (e) => {
+    e.preventDefault();
+    if (!projClientEmail.trim() || !projTitle.trim()) {
+      setError('Client Email and Title are required');
+      return;
+    }
+
+    if (!auth.currentUser) return;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/projects`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          clientEmail: projClientEmail.toLowerCase(),
+          title: projTitle,
+          tier: projTier,
+          progress: Number(projProgress),
+          status: projStatus,
+          cost: projCost,
+          timeline: projTimeline
+        })
+      });
+
+      if (res.ok) {
+        setSuccess(editingProject ? 'Project updated successfully' : 'Project created successfully');
+        setProjClientEmail('');
+        setProjTitle('');
+        setProjTier('Standard Website');
+        setProjProgress(0);
+        setProjStatus('In Progress');
+        setProjCost('R2,800 ZAR');
+        setProjTimeline('10 Days');
+        setEditingProject(null);
+        loadDashboardData();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to save project');
+      }
+    } catch (error) {
+      setError('Error saving project: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditProjectClick = (proj) => {
+    setEditingProject(proj);
+    setProjClientEmail(proj.clientEmail);
+    setProjTitle(proj.title || '');
+    setProjTier(proj.tier || 'Standard Website');
+    setProjProgress(proj.progress || 0);
+    setProjStatus(proj.status || 'In Progress');
+    setProjCost(proj.cost || 'R2,800 ZAR');
+    setProjTimeline(proj.timeline || '10 Days');
+  };
+
+  const handleAddInvoice = async (e) => {
+    e.preventDefault();
+    if (!invClientEmail.trim() || !invInvoiceId.trim() || !invTitle.trim() || !invAmount.trim()) {
+      setError('Client Email, Invoice ID, Title, and Amount are required');
+      return;
+    }
+
+    if (!auth.currentUser) return;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/billing`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          clientEmail: invClientEmail.toLowerCase(),
+          invoiceId: invInvoiceId,
+          title: invTitle,
+          desc: invDesc,
+          amount: invAmount,
+          status: invStatus
+        })
+      });
+
+      if (res.ok) {
+        setSuccess('Invoice created successfully');
+        setInvClientEmail('');
+        setInvInvoiceId('');
+        setInvTitle('');
+        setInvDesc('');
+        setInvAmount('');
+        setInvStatus('PENDING');
+        loadDashboardData();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to create invoice');
+      }
+    } catch (error) {
+      setError('Error creating invoice: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleInvoiceStatus = async (invoiceId, currentStatus) => {
+    if (!auth.currentUser) return;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    const newStatus = currentStatus === 'PAID' ? 'PENDING' : 'PAID';
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/billing/${invoiceId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (res.ok) {
+        setSuccess(`Invoice status updated to ${newStatus}`);
+        loadDashboardData();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to update invoice status');
+      }
+    } catch (error) {
+      setError('Error updating invoice status: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId) => {
+    if (!window.confirm(`Are you sure you want to delete invoice ${invoiceId}?`)) return;
+
+    if (!auth.currentUser) return;
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = await auth.currentUser.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/billing/${invoiceId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.ok) {
+        setSuccess('Invoice deleted successfully');
+        loadDashboardData();
+      } else {
+        const errorData = await res.json();
+        setError(errorData.error || 'Failed to delete invoice');
+      }
+    } catch (error) {
+      setError('Error deleting invoice: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -723,7 +946,7 @@ export default function AdminDashboard() {
               <h3 style={{ color: '#0066ff', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Plus size={18} /> Add New Client
               </h3>
-              <form onSubmit={handleAddClient} style={{ display: 'flex', gap: '1rem' }}>
+              <form onSubmit={handleAddClient} style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <input
                   type="email"
                   placeholder="Client Email"
@@ -731,6 +954,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewClientEmail(e.target.value)}
                   style={{
                     flex: 1,
+                    minWidth: '200px',
                     padding: '0.75rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(0, 102, 255, 0.3)',
@@ -747,6 +971,7 @@ export default function AdminDashboard() {
                   onChange={(e) => setNewClientName(e.target.value)}
                   style={{
                     flex: 1,
+                    minWidth: '200px',
                     padding: '0.75rem',
                     background: 'rgba(255, 255, 255, 0.05)',
                     border: '1px solid rgba(0, 102, 255, 0.3)',
@@ -766,7 +991,8 @@ export default function AdminDashboard() {
                     border: 'none',
                     borderRadius: '6px',
                     cursor: isLoading ? 'not-allowed' : 'pointer',
-                    opacity: isLoading ? 0.6 : 1
+                    opacity: isLoading ? 0.6 : 1,
+                    fontWeight: 600
                   }}
                 >
                   Add Client
@@ -782,7 +1008,7 @@ export default function AdminDashboard() {
             }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr',
                 gap: '1rem',
                 padding: '1.5rem',
                 borderBottom: '1px solid rgba(0, 102, 255, 0.2)',
@@ -794,12 +1020,13 @@ export default function AdminDashboard() {
                 <div>Email</div>
                 <div>Created</div>
                 <div>Projects</div>
+                <div>Actions</div>
               </div>
               {clients.length > 0 ? (
                 clients.map((client, idx) => (
                   <div key={idx} style={{
                     display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr',
                     gap: '1rem',
                     padding: '1rem 1.5rem',
                     borderBottom: '1px solid rgba(0, 102, 255, 0.1)',
@@ -810,6 +1037,25 @@ export default function AdminDashboard() {
                     <div>{client.email}</div>
                     <div>{new Date(client.createdAt).toLocaleDateString()}</div>
                     <div>{projects.filter(p => p.clientEmail === client.email).length}</div>
+                    <div>
+                      <button
+                        onClick={() => handleDeleteClient(client.email)}
+                        style={{
+                          padding: '0.4rem 0.8rem',
+                          background: 'rgba(255, 51, 102, 0.15)',
+                          color: '#ff3366',
+                          border: '1px solid rgba(255, 51, 102, 0.3)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -823,91 +1069,517 @@ export default function AdminDashboard() {
 
         {/* Projects Tab */}
         {currentTab === 'projects' && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(0, 102, 255, 0.2)',
-            borderRadius: '8px',
-            overflow: 'hidden'
-          }}>
-            {projects.length > 0 ? (
-              projects.map((project, idx) => (
-                <div key={idx} style={{
-                  padding: '1.5rem',
-                  borderBottom: '1px solid rgba(0, 102, 255, 0.1)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ color: 'white' }}>
-                    <h4 style={{ margin: '0 0 0.25rem 0', color: '#0066ff' }}>{project.title}</h4>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>Client: {project.clientEmail}</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>Progress: {project.progress}%</p>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteProject(project._id)}
+          <div>
+            {/* Create/Edit Project Form */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(0, 102, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: '#0066ff', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {editingProject ? <Edit2 size={18} /> : <Plus size={18} />}
+                {editingProject ? 'Edit Project' : 'Create / Assign New Project'}
+              </h3>
+              <form onSubmit={handleSaveProject} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Client Email</label>
+                  <input
+                    type="email"
+                    placeholder="client@example.com"
+                    value={projClientEmail}
+                    onChange={(e) => setProjClientEmail(e.target.value)}
+                    disabled={!!editingProject}
                     style={{
-                      padding: '0.5rem 1rem',
-                      background: 'rgba(255, 51, 102, 0.2)',
-                      color: '#ff3366',
-                      border: '1px solid rgba(255, 51, 102, 0.3)',
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
                       borderRadius: '6px',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Project Title</label>
+                  <input
+                    type="text"
+                    placeholder="Custom Web App"
+                    value={projTitle}
+                    onChange={(e) => setProjTitle(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Tier / Package</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Standard Website"
+                    value={projTier}
+                    onChange={(e) => setProjTier(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Progress ({projProgress}%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="0 - 100"
+                    value={projProgress}
+                    onChange={(e) => setProjProgress(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Status Description</label>
+                  <input
+                    type="text"
+                    placeholder="In Development"
+                    value={projStatus}
+                    onChange={(e) => setProjStatus(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Cost</label>
+                  <input
+                    type="text"
+                    placeholder="R2,800 ZAR"
+                    value={projCost}
+                    onChange={(e) => setProjCost(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Timeline</label>
+                  <input
+                    type="text"
+                    placeholder="10 Days"
+                    value={projTimeline}
+                    onChange={(e) => setProjTimeline(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '0.5rem', gridColumn: '1 / -1' }}>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: '#0066ff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      opacity: isLoading ? 0.6 : 1,
+                      fontWeight: 600
                     }}
                   >
-                    <Trash2 size={16} /> Delete
+                    {editingProject ? 'Update Project' : 'Save Project'}
                   </button>
+
+                  {editingProject && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingProject(null);
+                        setProjClientEmail('');
+                        setProjTitle('');
+                        setProjTier('Standard Website');
+                        setProjProgress(0);
+                        setProjStatus('In Progress');
+                        setProjCost('R2,800 ZAR');
+                        setProjTimeline('10 Days');
+                      }}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'transparent',
+                        color: '#8da2bb',
+                        border: '1px solid #1e3a5f',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
                 </div>
-              ))
-            ) : (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#8da2bb' }}>
-                No projects found.
-              </div>
-            )}
+              </form>
+            </div>
+
+            {/* Project Cards List */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(0, 102, 255, 0.2)',
+              borderRadius: '8px',
+              overflow: 'hidden'
+            }}>
+              {projects.length > 0 ? (
+                projects.map((project, idx) => (
+                  <div key={idx} style={{
+                    padding: '1.5rem',
+                    borderBottom: '1px solid rgba(0, 102, 255, 0.1)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ color: 'white', flex: 1, minWidth: '250px' }}>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: '#0066ff', fontSize: '1.1rem' }}>{project.title}</h4>
+                      <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>👤 Client: <strong>{project.clientEmail}</strong></p>
+                      <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>🏷️ Tier: {project.tier || 'Standard'}</p>
+                      <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>💰 Cost: {project.cost} | ⏱️ Timeline: {project.timeline}</p>
+                      <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <div style={{ flex: 1, maxWidth: '200px', height: '8px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${project.progress}%`, height: '100%', background: 'linear-gradient(90deg, #0066ff, #00ff66)', borderRadius: '4px' }}></div>
+                        </div>
+                        <span style={{ fontSize: '0.8rem', color: '#00ff66', fontWeight: 600 }}>{project.progress}%</span>
+                        <span style={{ fontSize: '0.75rem', color: '#8da2bb' }}>({project.status})</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleEditProjectClick(project)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'rgba(0, 102, 255, 0.2)',
+                          color: '#0066ff',
+                          border: '1px solid rgba(0, 102, 255, 0.4)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <Edit2 size={16} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProject(project._id)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'rgba(255, 51, 102, 0.2)',
+                          color: '#ff3366',
+                          border: '1px solid rgba(255, 51, 102, 0.3)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.85rem'
+                        }}
+                      >
+                        <Trash2 size={16} /> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#8da2bb' }}>
+                  No projects found. Create one above!
+                </div>
+              )}
+            </div>
           </div>
         )}
 
         {/* Invoices Tab */}
         {currentTab === 'invoices' && (
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(0, 102, 255, 0.2)',
-            borderRadius: '8px',
-            overflow: 'hidden'
-          }}>
-            {invoices.length > 0 ? (
-              invoices.map((invoice, idx) => (
-                <div key={idx} style={{
-                  padding: '1.5rem',
-                  borderBottom: '1px solid rgba(0, 102, 255, 0.1)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ color: 'white', flex: 1 }}>
-                    <h4 style={{ margin: '0 0 0.25rem 0', color: '#0066ff' }}>{invoice.title}</h4>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>Invoice: {invoice.invoiceId}</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>Amount: {invoice.amount}</p>
-                  </div>
-                  <div style={{
-                    padding: '0.5rem 1rem',
-                    borderRadius: '6px',
-                    fontSize: '0.85rem',
-                    fontWeight: 600,
-                    background: invoice.status === 'PAID' ? 'rgba(0, 255, 102, 0.2)' : 'rgba(255, 170, 0, 0.2)',
-                    color: invoice.status === 'PAID' ? '#00ff66' : '#ffaa00'
-                  }}>
-                    {invoice.status}
-                  </div>
+          <div>
+            {/* Create Invoice Form */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(0, 102, 255, 0.2)',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              <h3 style={{ color: '#0066ff', margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Plus size={18} /> Create New Invoice
+              </h3>
+              <form onSubmit={handleAddInvoice} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Client Email</label>
+                  <input
+                    type="email"
+                    placeholder="client@example.com"
+                    value={invClientEmail}
+                    onChange={(e) => setInvClientEmail(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
                 </div>
-              ))
-            ) : (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#8da2bb' }}>
-                No invoices found.
-              </div>
-            )}
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Invoice ID</label>
+                  <input
+                    type="text"
+                    placeholder="INV-2026-001"
+                    value={invInvoiceId}
+                    onChange={(e) => setInvInvoiceId(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Invoice Title</label>
+                  <input
+                    type="text"
+                    placeholder="50% Initial Deposit"
+                    value={invTitle}
+                    onChange={(e) => setInvTitle(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Amount</label>
+                  <input
+                    type="text"
+                    placeholder="R1,400 ZAR"
+                    value={invAmount}
+                    onChange={(e) => setInvAmount(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Description</label>
+                  <input
+                    type="text"
+                    placeholder="Project initiation deposit"
+                    value={invDesc}
+                    onChange={(e) => setInvDesc(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', color: '#8da2bb', marginBottom: '0.3rem' }}>Initial Status</label>
+                  <select
+                    value={invStatus}
+                    onChange={(e) => setInvStatus(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      background: 'var(--bg-pure)',
+                      border: '1px solid rgba(0, 102, 255, 0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="PAID">PAID</option>
+                    <option value="PENDING RELEASE">PENDING RELEASE</option>
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-end', gridColumn: '1 / -1' }}>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      background: '#0066ff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      opacity: isLoading ? 0.6 : 1,
+                      fontWeight: 600
+                    }}
+                  >
+                    Create Invoice
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Invoices List */}
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(0, 102, 255, 0.2)',
+              borderRadius: '8px',
+              overflow: 'hidden'
+            }}>
+              {invoices.length > 0 ? (
+                invoices.map((invoice, idx) => (
+                  <div key={idx} style={{
+                    padding: '1.5rem',
+                    borderBottom: '1px solid rgba(0, 102, 255, 0.1)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    flexWrap: 'wrap'
+                  }}>
+                    <div style={{ color: 'white', flex: 1, minWidth: '250px' }}>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: '#0066ff', fontSize: '1.05rem' }}>{invoice.title}</h4>
+                      <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>🧾 Invoice ID: <strong>{invoice.invoiceId}</strong> | 👤 Client: {invoice.clientEmail}</p>
+                      <p style={{ margin: '0.25rem 0', fontSize: '0.85rem', color: '#8da2bb' }}>💵 Amount: <strong>{invoice.amount}</strong> {invoice.desc ? `— ${invoice.desc}` : ''}</p>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        background: invoice.status === 'PAID' ? 'rgba(0, 255, 102, 0.2)' : 'rgba(255, 170, 0, 0.2)',
+                        color: invoice.status === 'PAID' ? '#00ff66' : '#ffaa00',
+                        border: invoice.status === 'PAID' ? '1px solid rgba(0, 255, 102, 0.4)' : '1px solid rgba(255, 170, 0, 0.4)'
+                      }}>
+                        {invoice.status}
+                      </div>
+
+                      <button
+                        onClick={() => handleToggleInvoiceStatus(invoice.invoiceId, invoice.status)}
+                        style={{
+                          padding: '0.5rem 0.8rem',
+                          background: 'rgba(0, 102, 255, 0.2)',
+                          color: '#0066ff',
+                          border: '1px solid rgba(0, 102, 255, 0.4)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem',
+                          fontWeight: 600
+                        }}
+                      >
+                        Set to {invoice.status === 'PAID' ? 'PENDING' : 'PAID'}
+                      </button>
+
+                      <button
+                        onClick={() => handleDeleteInvoice(invoice.invoiceId)}
+                        style={{
+                          padding: '0.5rem 0.8rem',
+                          background: 'rgba(255, 51, 102, 0.2)',
+                          color: '#ff3366',
+                          border: '1px solid rgba(255, 51, 102, 0.3)',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '0.8rem'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#8da2bb' }}>
+                  No invoices found. Create one above!
+                </div>
+              )}
+            </div>
           </div>
         )}
 

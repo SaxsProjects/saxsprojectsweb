@@ -1126,6 +1126,17 @@ app.get('/api/health/check', authMiddleware, adminOnly, async (req, res) => {
 // Test Database Connection (No auth required for initial setup)
 app.get('/api/test/database', async (req, res) => {
   try {
+    if (mongoose.connection.readyState !== 1 || !mongoose.connection.db) {
+      return res.status(503).json({
+        success: false,
+        message: 'Database connection failed. Please check MONGODB_URI and Atlas IP Whitelist.',
+        database: {
+          status: 'disconnected',
+          timestamp: new Date()
+        }
+      });
+    }
+
     // Test MongoDB connection
     await mongoose.connection.db.admin().ping();
     

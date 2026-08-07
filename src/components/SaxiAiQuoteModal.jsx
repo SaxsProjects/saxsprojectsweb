@@ -7,6 +7,7 @@ export default function SaxiAiQuoteModal({ isOpen, onClose, initialService = '' 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [serviceInterest, setServiceInterest] = useState(initialService || 'Web & Web App Development');
+  const [customService, setCustomService] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [budgetRange, setBudgetRange] = useState('R5,000 - R15,000');
 
@@ -22,6 +23,8 @@ export default function SaxiAiQuoteModal({ isOpen, onClose, initialService = '' 
     setStatusMsg('Analyzing your requirements and formulating project scope...');
     setQuoteResult(null);
 
+    const activeService = serviceInterest === 'Other' ? (customService ? `Other: ${customService}` : 'Custom Specified Service') : serviceInterest;
+
     try {
       const response = await fetch('/api/saxi/sales/leads', {
         method: 'POST',
@@ -31,7 +34,7 @@ export default function SaxiAiQuoteModal({ isOpen, onClose, initialService = '' 
           contactName,
           email,
           phone,
-          serviceInterest,
+          serviceInterest: activeService,
           projectDescription,
           budgetRange,
         }),
@@ -208,6 +211,7 @@ export default function SaxiAiQuoteModal({ isOpen, onClose, initialService = '' 
                   <option value="Client Portal & SaaS Platform">Client Portal & SaaS Platform</option>
                   <option value="AI Workflow & Automation Integration">AI Workflow & Automation Integration</option>
                   <option value="Mobile App Development">Mobile App Development</option>
+                  <option value="Other">Other (Specify below)</option>
                 </select>
               </div>
 
@@ -218,13 +222,28 @@ export default function SaxiAiQuoteModal({ isOpen, onClose, initialService = '' 
                   onChange={(e) => setBudgetRange(e.target.value)}
                   style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color, #E2E8F0)', fontSize: '0.9rem', outline: 'none', background: '#FFF' }}
                 >
-                  <option value="R3,000 - R5,000">R3,000 - R5,000 (Basic Site)</option>
-                  <option value="R5,000 - R15,000">R5,000 - R15,000 (Corporate & Web App)</option>
-                  <option value="R15,000 - R35,000">R15,000 - R35,000 (Full SaaS Platform)</option>
-                  <option value="Custom Enterprise">Custom Enterprise Scope</option>
+                  <option value="R3,000 - R5,000">R3,000 - R5,000</option>
+                  <option value="R5,000 - R15,000">R5,000 - R15,000</option>
+                  <option value="R15,000 - R30,000">R15,000 - R30,000</option>
+                  <option value="R30,000 - R50,000">R30,000 - R50,000</option>
+                  <option value="R50,000+ Enterprise Scope">R50,000+ Enterprise Scope</option>
                 </select>
               </div>
             </div>
+
+            {serviceInterest === 'Other' && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary, #101E35)', marginBottom: '0.35rem' }}>Specify Custom Service Needed</label>
+                <input 
+                  type="text"
+                  required
+                  placeholder="e.g. Custom API Integration, IoT System, Database Migration..."
+                  value={customService}
+                  onChange={(e) => setCustomService(e.target.value)}
+                  style={{ width: '100%', padding: '0.75rem 1rem', borderRadius: '10px', border: '1px solid var(--border-color, #E2E8F0)', fontSize: '0.9rem', outline: 'none' }}
+                />
+              </div>
+            )}
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary, #101E35)', marginBottom: '0.35rem' }}>Project Description & Technical Requirements</label>
