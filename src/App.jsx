@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import useScrollReveal from './hooks/useScrollReveal';
 import Home from './pages/Home';
 import Services from './pages/Services';
 import TechSolutions from './pages/TechSolutions';
@@ -11,24 +12,36 @@ import ClientDashboard from './pages/ClientDashboard';
 import Contact from './pages/Contact';
 import OAuthCallback from './pages/OAuthCallback';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
-
-// Removed live chat / Firestore listener imports (chat removed)
+import SaxiAiQuoteModal from './components/SaxiAiQuoteModal';
 
 // Logo Asset
 import logoImg from './assets/logo.png';
 
 // Icons
-import { Menu, X, MessageCircle } from 'lucide-react';
+import { Menu, X, MessageCircle, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeQuote, setPrefilledQuote] = useState(null);
-  
+  const [scrolled, setScrolled] = useState(false);
+  const [saxiQuoteModalOpen, setSaxiQuoteModalOpen] = useState(false);
+
   // Check if we're on callback page
   const isOAuthCallback = window.location.pathname === '/callback';
 
   // Live chat removed — keeping app focused on core navigation and content
+
+  // Solidify the navbar once the user scrolls past the top of the hero
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Re-run scroll-reveal whenever the page (tab) changes
+  useScrollReveal(activeTab);
 
   const handleTabChange = (tabName) => {
     setActiveTab(tabName);
@@ -47,9 +60,9 @@ export default function App() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       
       {/* Navigation Header */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--border-color)' }}>
+      <header className={`site-nav ${scrolled ? 'scrolled' : ''}`}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '80px' }}>
-          
+
           {/* Logo */}
           <div onClick={() => handleTabChange('home')} style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
             <img src={logoImg} alt="SaxsProjects" style={{ height: '42px', display: 'block', objectFit: 'contain' }} />
@@ -57,11 +70,17 @@ export default function App() {
 
           {/* Desktop Nav Links */}
           <nav style={{ display: 'none', gap: '1.5rem', alignItems: 'center' }} className="desktop-nav">
-            <button onClick={() => handleTabChange('home')} style={{ background: 'transparent', border: 'none', color: activeTab === 'home' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Home</button>
-            <button onClick={() => handleTabChange('tech-solutions')} style={{ background: 'transparent', border: 'none', color: activeTab === 'tech-solutions' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Tech Solutions</button>
-            <button onClick={() => handleTabChange('learning-support')} style={{ background: 'transparent', border: 'none', color: activeTab === 'learning-support' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>Learning Support</button>
-            <button onClick={() => handleTabChange('about')} style={{ background: 'transparent', border: 'none', color: activeTab === 'about' ? 'var(--primary-glow)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>About</button>
-            <button onClick={() => handleTabChange('contact')} className="neon-glow-btn" style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem' }}>Get a Quote</button>
+            <button onClick={() => handleTabChange('home')} className={`nav-link ${activeTab === 'home' ? 'active' : ''}`}>Home</button>
+            <button onClick={() => handleTabChange('tech-solutions')} className={`nav-link ${activeTab === 'tech-solutions' ? 'active' : ''}`}>Tech Solutions</button>
+            <button onClick={() => handleTabChange('learning-support')} className={`nav-link ${activeTab === 'learning-support' ? 'active' : ''}`}>Learning Support</button>
+            <button onClick={() => handleTabChange('about')} className={`nav-link ${activeTab === 'about' ? 'active' : ''}`}>About</button>
+            <button 
+              onClick={() => setSaxiQuoteModalOpen(true)}
+              className="neon-glow-btn" 
+              style={{ padding: '0.5rem 1.25rem', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            >
+              <Sparkles size={14} /> Instant Project Quote
+            </button>
           </nav>
 
           {/* Mobile Menu Toggle */}
@@ -79,11 +98,17 @@ export default function App() {
         {mobileMenuOpen && (
           <div className="fade-in" style={{ background: 'var(--bg-pure)', borderBottom: '1px solid var(--border-color)', padding: '1.5rem 0' }}>
             <div className="container" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'flex-start' }}>
-              <button onClick={() => handleTabChange('home')} style={{ background: 'transparent', border: 'none', color: activeTab === 'home' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Home</button>
-              <button onClick={() => handleTabChange('tech-solutions')} style={{ background: 'transparent', border: 'none', color: activeTab === 'tech-solutions' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Tech Solutions</button>
-              <button onClick={() => handleTabChange('learning-support')} style={{ background: 'transparent', border: 'none', color: activeTab === 'learning-support' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>Learning Support</button>
-              <button onClick={() => handleTabChange('about')} style={{ background: 'transparent', border: 'none', color: activeTab === 'about' ? 'var(--primary-glow)' : 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>About</button>
-              <button onClick={() => handleTabChange('contact')} className="neon-glow-btn" style={{ width: '100%', justifyContent: 'center' }}>Get a Quote</button>
+              <button onClick={() => handleTabChange('home')} className={`nav-link ${activeTab === 'home' ? 'active' : ''}`} style={{ fontSize: '1rem' }}>Home</button>
+              <button onClick={() => handleTabChange('tech-solutions')} className={`nav-link ${activeTab === 'tech-solutions' ? 'active' : ''}`} style={{ fontSize: '1rem' }}>Tech Solutions</button>
+              <button onClick={() => handleTabChange('learning-support')} className={`nav-link ${activeTab === 'learning-support' ? 'active' : ''}`} style={{ fontSize: '1rem' }}>Learning Support</button>
+              <button onClick={() => handleTabChange('about')} className={`nav-link ${activeTab === 'about' ? 'active' : ''}`} style={{ fontSize: '1rem' }}>About</button>
+              <button 
+                onClick={() => { setSaxiQuoteModalOpen(true); setMobileMenuOpen(false); }} 
+                className="neon-glow-btn" 
+                style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+              >
+                <Sparkles size={16} /> Instant Project Quote
+              </button>
             </div>
           </div>
         )}
@@ -100,7 +125,7 @@ export default function App() {
         {activeTab === 'about' && <About />}
         {activeTab === 'blog' && <Blog />}
         {activeTab === 'dashboard' && <ClientDashboard />}
-        {activeTab === 'contact' && <Contact activeQuote={activeQuote} clearActiveQuote={() => setPrefilledQuote(null)} setActiveTab={handleTabChange} />}
+        {activeTab === 'contact' && <Contact activeQuote={activeQuote} clearActiveQuote={() => setPrefilledQuote(null)} setActiveTab={handleTabChange} setSaxiQuoteModalOpen={setSaxiQuoteModalOpen} />}
       </main>
 
       {/* Footer */}
@@ -150,11 +175,15 @@ export default function App() {
         </div>
         
         <div className="container" style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          © {new Date().getFullYear()} SaxsProjects. All rights reserved. • Built with Vite, React & Vanilla CSS.
+          © {new Date().getFullYear()} SaxsProjects. All rights reserved. • Built with Vite, React & SAXI Autonomous AI OS.
         </div>
       </footer>
 
-      {/* Live chat removed (floating widget) */}
+      {/* Floating WhatsApp Button */}
+      <FloatingWhatsApp />
+
+      {/* SAXI AI Instant Requirement & Quote Modal */}
+      <SaxiAiQuoteModal isOpen={saxiQuoteModalOpen} onClose={() => setSaxiQuoteModalOpen(false)} />
 
       {/* Global CSS Responsive Helpers styling injection */}
       <style>{`

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Phone, Mail, MessageCircle, Send, Calendar, Clock, CheckCircle2, X, Terminal, Server, Shield } from 'lucide-react';
+import { Phone, Mail, MessageCircle, Send, Calendar, Clock, CheckCircle2, X, Terminal, Server, Shield, Sparkles } from 'lucide-react';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
-export default function Contact({ activeQuote, clearActiveQuote, setActiveTab }) {
+export default function Contact({ activeQuote, clearActiveQuote, setActiveTab, setSaxiQuoteModalOpen }) {
   // Contact Form States
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -266,6 +266,24 @@ export default function Contact({ activeQuote, clearActiveQuote, setActiveTab })
         {/* Left Column: Form & Channels */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
           
+          {/* SaxsProjects Instant Brief & Scope Card */}
+          <div className="glass-card" style={{ border: '2px solid var(--primary-glow)', boxShadow: 'var(--card-shadow-hover)', background: 'linear-gradient(135deg, rgba(0, 102, 255, 0.04), rgba(255, 255, 255, 0.9))' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: 'rgba(0, 102, 255, 0.1)', color: 'var(--primary-glow)', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.75rem' }}>
+              <Shield size={14} /> SaxsProjects Automated Solutions Engine
+            </div>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Need an Instant Scope & Estimate?</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.25rem' }}>
+              Our automated solutions engineering system analyzes your project requirements and generates an estimated software specification, budget range, and timeline. Our lead architect will confirm your quote within 10 minutes.
+            </p>
+            <button 
+              onClick={() => setSaxiQuoteModalOpen && setSaxiQuoteModalOpen(true)}
+              className="neon-glow-btn"
+              style={{ width: '100%', justifyContent: 'center', gap: '0.5rem', padding: '0.85rem' }}
+            >
+              <Sparkles size={18} /> Request Instant Project Estimate
+            </button>
+          </div>
+
           {/* Quick Channels */}
           <div className="glass-card">
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Direct Access</h3>

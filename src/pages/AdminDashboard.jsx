@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, Users, FileText, DollarSign, TrendingUp, LogOut,
-  Plus, Trash2, Edit2, Clock, AlertCircle, Database, BookOpen, Send, MessageCircle
+  Plus, Trash2, Edit2, Clock, AlertCircle, Database, BookOpen, Send, MessageCircle, Cpu
 } from 'lucide-react';
 import { auth } from '../../firebase-config';
+import SaxiAdminControlCenter from '../components/SaxiAdminControlCenter';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
@@ -646,6 +647,7 @@ export default function AdminDashboard() {
       }}>
         {[
           { id: 'overview', label: 'Overview', icon: BarChart3 },
+          { id: 'saxi_agents', label: '🤖 SAXI OS AI Engine', icon: Cpu },
           { id: 'clients', label: 'Clients', icon: Users },
           { id: 'projects', label: 'Projects', icon: FileText },
           { id: 'invoices', label: 'Invoices', icon: DollarSign },
@@ -677,6 +679,9 @@ export default function AdminDashboard() {
 
       {/* Content Area */}
       <div style={{ padding: '2rem' }}>
+        {/* SAXI OS AI Engine Tab */}
+        {currentTab === 'saxi_agents' && <SaxiAdminControlCenter />}
+
         {/* Overview Tab */}
         {currentTab === 'overview' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>

@@ -29,6 +29,29 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
+// Root & Health Status Endpoints
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    service: 'SaxsProjects Integrated Enterprise API Engine',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      api: '/api',
+      projects: '/api/projects',
+      clients: '/api/admin/clients',
+    }
+  });
+});
+
+app.get('/api', (req, res) => {
+  res.status(200).json({
+    status: 'online',
+    service: 'SaxsProjects API Gateway',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // ========================================================
 // 1. DATABASE CONNECTION
 // ========================================================
