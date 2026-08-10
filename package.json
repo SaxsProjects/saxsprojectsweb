@@ -5,10 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:backend": "cd backend && npm start",
-    "dev:saxi": "cd SAXI-OS && npm run start:dev --workspace=@saxi-os/api",
-    "build:saxi": "cd SAXI-OS && npm run build --workspace=@saxi-os/agent-contracts --workspace=@saxi-os/ai-gateway && npm run build --workspace=@saxi-os/api",
-    "test:saxi": "cd SAXI-OS && npm test --workspace=@saxi-os/api",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

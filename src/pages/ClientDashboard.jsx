@@ -3,7 +3,6 @@ import { Lock, Send, CheckCircle2, MessageSquare, Clock, DollarSign, User, Plus,
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase-config';
-import SaxiCustomerPortalView from '../components/SaxiCustomerPortalView';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
@@ -964,11 +963,6 @@ export default function ClientDashboard() {
             Logout
           </button>
         </div>
-      </div>
-
-      {/* SAXI OS AI Autonomous Customer Portal */}
-      <div style={{ marginBottom: '2.5rem' }}>
-        <SaxiCustomerPortalView />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>

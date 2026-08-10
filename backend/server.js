@@ -29,29 +29,6 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 
-// Root & Health Status Endpoints
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    service: 'SaxsProjects Integrated Enterprise API Engine',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      api: '/api',
-      projects: '/api/projects',
-      clients: '/api/admin/clients',
-    }
-  });
-});
-
-app.get('/api', (req, res) => {
-  res.status(200).json({
-    status: 'online',
-    service: 'SaxsProjects API Gateway',
-    timestamp: new Date().toISOString()
-  });
-});
-
 // ========================================================
 // 1. DATABASE CONNECTION
 // ========================================================
@@ -1126,17 +1103,6 @@ app.get('/api/health/check', authMiddleware, adminOnly, async (req, res) => {
 // Test Database Connection (No auth required for initial setup)
 app.get('/api/test/database', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1 || !mongoose.connection.db) {
-      return res.status(503).json({
-        success: false,
-        message: 'Database connection failed. Please check MONGODB_URI and Atlas IP Whitelist.',
-        database: {
-          status: 'disconnected',
-          timestamp: new Date()
-        }
-      });
-    }
-
     // Test MongoDB connection
     await mongoose.connection.db.admin().ping();
     
