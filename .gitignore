@@ -31,3 +31,6 @@ firebase-admin-config.json
 *.njsproj
 *.sln
 *.sw?
+
+.vercel
+.playwright-mcp/
