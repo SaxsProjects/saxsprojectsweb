@@ -8,10 +8,13 @@ The official website of **SAXS Projects**, a South African software studio build
 
 ## Features
 
-- Marketing pages: Home, Services, Tech Solutions, Student Services, How We Work, Pricing, About, Blog and Contact
-- Client dashboard with Google sign-in (OAuth callback flow)
-- Floating WhatsApp contact button
-- Optional Node.js/Express backend for clients, projects, invoices, email and calendar integrations
+- Pages: Home, Tech Solutions, Learning Support, Pricing (with quote calculator), About, How We Work, Guides, Contact, Privacy Policy (POPIA) and Terms of Service, each at its own URL
+- Contact form and free-consultation requests that work with or without the backend (falls back to WhatsApp / email so no lead is lost)
+- All business details and prices in one place: [`src/config/business.js`](src/config/business.js) and [`src/config/pricing.js`](src/config/pricing.js)
+- SEO: per-page titles and descriptions, Google structured data, `sitemap.xml` and `robots.txt` generated at build time
+- Client portal (Firebase sign-in) and an optional Node.js/Express backend for stored leads, email, projects and invoices
+
+**Launching the business?** See [LAUNCH_CHECKLIST.md](LAUNCH_CHECKLIST.md).
 
 ## Tech stack
 
@@ -40,15 +43,18 @@ npm run preview    # serve the production build locally
 npm run lint       # ESLint
 ```
 
-### Backend (optional)
+### Connecting the backend (optional)
+
+The website runs fine on its own. To use the backend, set `VITE_API_URL` (see [`.env.example`](.env.example)) to the backend's URL, e.g. in `.env.local` for development or in Vercel's environment variables for production.
 
 ```bash
 cd backend
 npm ci
+cp .env.example .env   # then fill it in
 npm start
 ```
 
-The backend reads its configuration from environment variables in `backend/.env` (never commit this file). Variables used: `PORT`, `MONGODB_URI`, `ADMIN_EMAIL`, `INQUIRY_RECIPIENT_EMAIL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GEMINI_API_KEY`.
+Every variable the backend reads is documented in [`backend/.env.example`](backend/.env.example). In production (`NODE_ENV=production`) the backend refuses portal logins unless Firebase Admin is configured, and rejects enquiries unless SMTP is configured, so the website falls back to WhatsApp/email instead of losing the lead.
 
 More detail: [BACKEND_GUIDE.md](BACKEND_GUIDE.md), [TESTING.md](TESTING.md), [QUICK_REFERENCE.md](QUICK_REFERENCE.md).
 
@@ -56,11 +62,14 @@ More detail: [BACKEND_GUIDE.md](BACKEND_GUIDE.md), [TESTING.md](TESTING.md), [QU
 
 ```
 src/
-  pages/        site pages (Home, Services, Pricing, ...)
+  config/       business details, prices and page list (edit these first)
+  pages/        site pages (Home, Tech Solutions, Pricing, Contact, ...)
   components/   shared components (WhatsApp button, Google login)
+  lib/          backend client and consultation-slot helpers
   assets/       logos and images
 backend/        Express API, Mongoose models, integrations
-public/         static files
+public/         icons, share image, manifest
+vercel.json     SPA routing and security headers for Vercel
 ```
 
 ## Contributing
