@@ -58,7 +58,7 @@ export async function verifyUserToken(token) {
         throw new Error('Invalid token');
       }
     } catch (e) {
-      throw new Error('Invalid token');
+      throw new Error('Invalid token', { cause: e });
     }
   }
 
@@ -66,7 +66,7 @@ export async function verifyUserToken(token) {
     const decodedToken = await auth.verifyIdToken(token);
     return decodedToken.uid; // This UID links to the client
   } catch (error) {
-    throw new Error('Invalid token');
+    throw new Error('Invalid token', { cause: error });
   }
 }
 
