@@ -1,47 +1,41 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Calendar, Clock, ArrowLeft, Tag, Loader } from 'lucide-react';
+import { BookOpen, Calendar, Clock, ArrowLeft, Tag, Loader, ArrowRight } from 'lucide-react';
+import { API_BASE_URL, hasBackend } from '../lib/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
-
-export default function Blog() {
+export default function Blog({ setActiveTab }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(hasBackend);
 
   useEffect(() => {
-    fetchBlogPosts();
+    if (!hasBackend) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/blogs`);
+        if (res.ok && !cancelled) setPosts(await res.json());
+      } catch (err) {
+        console.error('Error fetching blog posts:', err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const fetchBlogPosts = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch(`${API_BASE_URL}/blogs`);
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data);
-      } else {
-        setError('Failed to load blog posts');
-      }
-    } catch (err) {
-      console.error('Error fetching blog posts:', err);
-      setError('Failed to load blog posts');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleReadMore = async (post) => {
+    setSelectedPost(post);
+    window.scrollTo(0, 0);
     try {
       const res = await fetch(`${API_BASE_URL}/blogs/${post.slug}`);
       if (res.ok) {
         const fullPost = await res.json();
         setSelectedPost(fullPost);
-        window.scrollTo(0, 0);
       }
     } catch (err) {
       console.error('Error fetching full post:', err);
-      setSelectedPost(post);
     }
   };
 
@@ -60,7 +54,7 @@ export default function Blog() {
         
         <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '3rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <Calendar size={14} /> {new Date(selectedPost.publishedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            <Calendar size={14} /> {new Date(selectedPost.publishedAt).toLocaleDateString('en-ZA', { month: 'long', day: 'numeric', year: 'numeric' })}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <Clock size={14} /> {selectedPost.views || 0} views
@@ -94,7 +88,7 @@ export default function Blog() {
         <div style={{ marginTop: '4rem', padding: '2rem', border: '1px solid var(--border-color)', borderRadius: '12px', background: 'var(--bg-deep)', textAlign: 'center' }}>
           <h4 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Ready to elevate your digital presence?</h4>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>We build custom solutions that deliver results. Let's discuss your next project.</p>
-          <button onClick={() => { setSelectedPost(null); window.location.href = '/contact'; }} className="neon-glow-btn" style={{ margin: '0 auto' }}>
+          <button onClick={() => setActiveTab('contact')} className="neon-glow-btn" style={{ margin: '0 auto' }}>
             Book Consultation
           </button>
         </div>
@@ -111,24 +105,16 @@ export default function Blog() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="blog-list-container fade-in container section-padding" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
-        <p style={{ color: 'var(--text-muted)' }}>{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="blog-list-container fade-in container section-padding">
       <div className="section-header">
         <span className="section-subtitle">Knowledge Hub</span>
-        <h2>SaxsProjects Guides</h2>
+        <h1 style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>SaxsProjects Guides</h1>
         <p>Expert insights on web development, digital strategy, and technology trends shaping modern business.</p>
       </div>
 
       {posts.length > 0 ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '2rem', marginTop: '3rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(320px, 100%), 1fr))', gap: '2rem', marginTop: '3rem' }}>
           {posts.map((post) => (
             <div 
               key={post._id}
@@ -171,7 +157,7 @@ export default function Blog() {
               
               <div style={{ display: 'flex', gap: '1rem', color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '1.5rem' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Calendar size={12} /> {new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  <Calendar size={12} /> {new Date(post.publishedAt).toLocaleDateString('en-ZA', { month: 'short', day: 'numeric' })}
                 </span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <Clock size={12} /> {post.views || 0} views
@@ -213,7 +199,12 @@ export default function Blog() {
       ) : (
         <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(0, 102, 255, 0.05)', borderRadius: '12px', border: '1px dashed var(--border-color)' }}>
           <BookOpen size={40} style={{ margin: '0 auto 1rem', color: 'var(--text-muted)', opacity: 0.5 }} />
-          <p style={{ color: 'var(--text-muted)', fontSize: '1rem' }}>No blog posts published yet. Check back soon for insights and guides!</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', marginBottom: '1.5rem' }}>
+            Our first guides are on the way. In the meantime, ask us anything about getting your business online.
+          </p>
+          <button onClick={() => setActiveTab('contact')} className="neon-glow-btn">
+            Ask a question <ArrowRight size={16} aria-hidden="true" />
+          </button>
         </div>
       )}
 

@@ -4,8 +4,8 @@ import {
   Plus, Trash2, Edit2, Clock, AlertCircle, Database, BookOpen, Send, MessageCircle
 } from 'lucide-react';
 import { auth } from '../../firebase-config';
+import { API_BASE_URL } from '../lib/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
 const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
 
 export default function AdminDashboard() {
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
     }
   }, [isLoggedIn]);
 
-  const loadDashboardData = async () => {
+  async function loadDashboardData() {
     if (!auth.currentUser) return;
     
     try {
@@ -121,7 +121,7 @@ export default function AdminDashboard() {
       console.error('Error loading dashboard data:', error);
       setError('Failed to load dashboard data');
     }
-  };
+  }
 
   const checkConnections = async (token) => {
     try {

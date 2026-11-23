@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, Send, CheckCircle2, MessageSquare, Clock, DollarSign, User, Plus, Trash2, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
-import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase-config';
+import { API_BASE_URL } from '../lib/api';
 
-const API_BASE_URL = 'http://localhost:5000/api';
 const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
 
 export default function ClientDashboard() {
@@ -110,25 +110,13 @@ export default function ClientDashboard() {
     fetchClients();
   }, [isLoggedIn, isAdminView]);
 
-  // 3. Sync Structured Project Records from MongoDB via Backend
-  useEffect(() => {
-    if (isLoggedIn && email) {
-      // For admin: only load if selectedClient is set
-      // For client: load with their email
-      const activeUser = isAdminView ? selectedClient : email;
-      if (activeUser && activeUser.trim().length > 0) {
-        loadDashboardData(activeUser);
-      }
-    }
-  }, [isLoggedIn, email, selectedClient, isAdminView]);
-
-  const loadDashboardData = async (clientEmail) => {
+  async function loadDashboardData(clientEmail) {
     if (!auth.currentUser || !clientEmail || clientEmail.trim() === '') return;
     const cleanEmail = clientEmail.toLowerCase();
-    setIsLoading(true);
 
     try {
       const token = await auth.currentUser.getIdToken();
+      setIsLoading(true);
       
       // A. Fetch Project Metadata & Milestones from MongoDB
       const projectRes = await fetch(`${API_BASE_URL}/projects/my-project`, {
@@ -224,7 +212,21 @@ export default function ClientDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
+
+  // 3. Sync Structured Project Records from MongoDB via Backend
+  useEffect(() => {
+    if (isLoggedIn && email) {
+      // For admin: only load if selectedClient is set
+      // For client: load with their email
+      const activeUser = isAdminView ? selectedClient : email;
+      if (activeUser && activeUser.trim().length > 0) {
+        // Run after render so switching clients quickly doesn't fire stale loads.
+        const timer = setTimeout(() => loadDashboardData(activeUser), 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isLoggedIn, email, selectedClient, isAdminView]);
 
   // 4. Live Chat Firestore Listener Integration
   useEffect(() => {
@@ -258,22 +260,18 @@ export default function ClientDashboard() {
           setMessages(chatList);
         } else {
           setMessages([
-            { sender: 'dev', text: `Welcome to your high-fidelity portal workspace for ${cleanRoom}. We can use this channel to discuss layout directions, specifications, and timelines.`, time: "Today 10:14 AM" }
+            { sender: 'dev', text: `Welcome to your high-fidelity portal workspace for ${cleanRoom}. We can use this channel to discuss layout directions, specifications, and timelines.`, time: "" }
           ]);
         }
       }, (error) => {
         console.error("Firestore live chat sync error:", error);
         // Set a default welcome message if Firestore fails
         setMessages([
-          { sender: 'dev', text: `Welcome to your high-fidelity portal workspace for ${cleanRoom}. We can use this channel to discuss layout directions, specifications, and timelines.`, time: "Today 10:14 AM" }
+          { sender: 'dev', text: `Welcome to your high-fidelity portal workspace for ${cleanRoom}. We can use this channel to discuss layout directions, specifications, and timelines.`, time: "" }
         ]);
       });
     } catch (error) {
       console.error("Error setting up Firestore listener:", error);
-      // Set a default welcome message if setup fails
-      setMessages([
-        { sender: 'dev', text: `Welcome to your portal workspace. Chat may be temporarily unavailable.`, time: "Today 10:14 AM" }
-      ]);
     }
 
     return () => {
@@ -349,7 +347,7 @@ export default function ClientDashboard() {
 
     try {
       // Update the user's password in Firebase
-      await auth.currentUser.updatePassword(newPassword);
+      await updatePassword(auth.currentUser, newPassword);
       setShowPasswordSetup(false);
       setNewPassword('');
       setConfirmPassword('');
