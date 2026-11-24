@@ -9,8 +9,8 @@ export default function Home({ setActiveTab }) {
   // Only publish numbers you can back up (Consumer Protection Act s41).
   // Update these as the business grows.
   const proofStats = [
-    { metric: "50+", label: "Clients Served" },
-    { metric: "100+", label: "Students Helped" },
+    { metric: "5", label: "Own Products in Development" },
+    { metric: "1 Day", label: "Reply Time" },
     { metric: "10+", label: "Subjects Covered" },
     { metric: "Free", label: "Written Quotations" }
   ];
