@@ -112,7 +112,7 @@ curl http://localhost:5000/api/test/database
 
 ```
 Email: saxs.solutions25@gmail.com
-Password: SaxsDemo2026!
+Password: (set in Firebase; not stored here)
 ```
 
 ### Admin Dashboard Features

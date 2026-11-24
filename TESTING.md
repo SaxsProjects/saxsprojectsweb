@@ -195,7 +195,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 2. Click on "Portal" → "Access Dashboard"
 3. Use credentials:
    - Email: `demo@example.com`
-   - Password: `SaxsDemo2026!`
+   - Password: `(set in Firebase; not stored here)`
 4. Click "Access Dashboard Workspace"
 5. You should see the Client Dashboard with:
    - ✓ Your projects

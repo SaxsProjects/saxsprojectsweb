@@ -1,47 +1,18 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { whatsappLink } from '../config/business';
 import { Sparkles, ArrowRight, ShieldCheck, Clock, MessageSquare, Users, BookOpen, Code, Settings } from 'lucide-react';
 import ownerPhoto from '../assets/owner-photo.jpeg';
 
 export default function Home({ setActiveTab }) {
   const [activeServiceTab, setActiveServiceTab] = useState('tech');
 
-  const techTestimonials = [
-    {
-      quote: "SaxsProjects turned our brick-and-mortar storefront into a high-converting digital shop in under 3 weeks. Incredible post-launch support!",
-      author: "Sarah K.",
-      role: "Founder, BrewLocal Coffee",
-      rating: 5
-    },
-    {
-      quote: "The booking custom portal they built has completely saved our front-desk operation. Absolutely seamless client experience and clean code.",
-      author: "Marcus J.",
-      role: "Operations Director, FitFlow Gyms",
-      rating: 5
-    }
-  ];
-
-  const studentTestimonials = [
-    {
-      quote: "I was struggling with my coding assignment until I reached out. The step-by-step guidance was exactly what I needed to understand the concepts.",
-      author: "Thabo L.",
-      role: "Computer Science Student",
-      rating: 5
-    },
-    {
-      quote: "SaxsProjects helped me structure my essay perfectly. Professional service at affordable rates!",
-      author: "Lindy M.",
-      role: "English Literature Student",
-      rating: 5
-    }
-  ];
-
-  const allTestimonials = activeServiceTab === 'tech' ? techTestimonials : studentTestimonials;
-
+  // Only publish numbers you can back up (Consumer Protection Act s41).
+  // Update these as the business grows.
   const proofStats = [
     { metric: "50+", label: "Clients Served" },
     { metric: "100+", label: "Students Helped" },
     { metric: "10+", label: "Subjects Covered" },
-    { metric: "5★", label: "Rating Average" }
+    { metric: "Free", label: "Written Quotations" }
   ];
 
   return (
@@ -58,7 +29,7 @@ export default function Home({ setActiveTab }) {
               TECH SOLUTIONS & STUDENT SERVICES
             </span>
             
-            <h1 style={{ fontSize: '3rem', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
+            <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3rem)', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
               Tech Solutions & Student Services: <span className="gradient-text">Two Sides of the Same Expert Coin</span>
             </h1>
             
@@ -67,10 +38,10 @@ export default function Home({ setActiveTab }) {
             </p>
 
             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button onClick={() => setActiveTab('tech-solutions')} className="neon-glow-btn">
+              <button onClick={() => setActiveTab('contact')} className="neon-glow-btn">
                 Get a Free Quote <ArrowRight size={16} />
               </button>
-              <a href="https://wa.me/27613991212?text=Hi! I need help with student services." target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+              <a href={whatsappLink("Hi SaxsProjects! I'd like help with learning support.")} target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
                 <MessageSquare size={16} /> Student Help
               </a>
             </div>
@@ -79,19 +50,19 @@ export default function Home({ setActiveTab }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '3rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={18} style={{ color: 'var(--primary-glow)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Plagiarism-Free</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Fixed Written Quotes</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={18} style={{ color: 'var(--primary-glow)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Secure Payments</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>50% Deposit, 50% on Delivery</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <ShieldCheck size={18} style={{ color: 'var(--primary-glow)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Data Privacy</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>POPIA-Compliant Privacy</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Clock size={18} style={{ color: 'var(--primary-glow)' }} />
-                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Fast Support</span>
+                <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>Reply Within 1 Business Day</span>
               </div>
             </div>
           </div>
@@ -180,7 +151,7 @@ export default function Home({ setActiveTab }) {
       {/* Social Proof Strip */}
       <section style={{ backgroundColor: 'var(--bg-deep)', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', padding: '3rem 0' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '2rem', textAlign: 'center' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: '2rem', textAlign: 'center' }}>
             {proofStats.map((stat, idx) => (
               <div key={idx}>
                 <p style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--primary-glow)', marginBottom: '0.5rem' }}>
@@ -242,7 +213,7 @@ export default function Home({ setActiveTab }) {
 
           {/* Tech Solutions Cards */}
           {activeServiceTab === 'tech' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem', marginBottom: '3rem' }}>
               <div className="glass-card">
                 <Code size={40} style={{ color: 'var(--primary-glow)', marginBottom: '1rem' }} />
                 <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Business Website Design</h3>
@@ -272,27 +243,27 @@ export default function Home({ setActiveTab }) {
 
           {/* Student Services Cards */}
           {activeServiceTab === 'student' && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem', marginBottom: '3rem' }}>
               <div className="glass-card">
                 <BookOpen size={40} style={{ color: 'var(--primary-glow)', marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Assignment & Essay Help</h3>
-                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Professional academic support and guidance from a university tutor.</p>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Assignment Strategy & Tutoring</h3>
+                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Learn to plan, research and structure your own work with a university tutor.</p>
                 <button onClick={() => setActiveTab('student-services')} className="neon-glow-btn" style={{ width: '100%', justifyContent: 'center', fontSize: '0.9rem', padding: '0.6rem' }}>
                   Learn More
                 </button>
               </div>
               <div className="glass-card">
                 <Code size={40} style={{ color: 'var(--primary-glow)', marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Coding Project Help</h3>
-                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Debugging, optimization, and step-by-step explanations.</p>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Coding Mentorship</h3>
+                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Debugging help and step-by-step explanations so you understand your code.</p>
                 <button onClick={() => setActiveTab('student-services')} className="neon-glow-btn" style={{ width: '100%', justifyContent: 'center', fontSize: '0.9rem', padding: '0.6rem' }}>
                   Learn More
                 </button>
               </div>
               <div className="glass-card">
                 <Settings size={40} style={{ color: 'var(--primary-glow)', marginBottom: '1rem' }} />
-                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Microsoft Office Support</h3>
-                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Quick installation and app activation assistance.</p>
+                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Software Setup & Support</h3>
+                <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>Installation and setup of Microsoft Office and study tools.</p>
                 <button onClick={() => setActiveTab('student-services')} className="neon-glow-btn" style={{ width: '100%', justifyContent: 'center', fontSize: '0.9rem', padding: '0.6rem' }}>
                   Learn More
                 </button>
@@ -319,7 +290,7 @@ export default function Home({ setActiveTab }) {
             <button onClick={() => setActiveTab('contact')} className="neon-glow-btn">
               Get Free Quote <ArrowRight size={16} />
             </button>
-            <a href="https://wa.me/27613991212?text=Hi! I'm interested in your services." target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <a href={whatsappLink("Hi SaxsProjects! I'm interested in your services.")} target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
               <MessageSquare size={16} /> Chat Now
             </a>
           </div>

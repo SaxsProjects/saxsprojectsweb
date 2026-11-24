@@ -1,0 +1,46 @@
+# Render Blueprint for the website backend (backend/).
+# Render dashboard > New > Blueprint > pick this repository.
+# Values marked `sync: false` are secrets: Render asks for them on first deploy
+# (they are never stored in this file).
+services:
+  - type: web
+    name: saxsprojects-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    # Frankfurt is the closest Render region to South Africa.
+    region: frankfurt
+    # Free instances sleep when idle and some free hosts block outgoing mail
+    # ports. If `npm run check:email` can't connect, move to a paid plan.
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: FRONTEND_URL
+        value: https://www.saxsprojects.co.za
+      - key: CORS_ORIGINS
+        value: https://www.saxsprojects.co.za,https://saxsprojects.co.za
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: INQUIRY_RECIPIENT_EMAIL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      # Zoho Mail (see backend/.env.example)
+      - key: SMTP_HOST
+        value: smtppro.zoho.com
+      - key: SMTP_PORT
+        value: "465"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM_NAME
+        value: SaxsProjects
+      # Paste the whole Firebase service-account JSON here (enables portal logins)
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false

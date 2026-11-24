@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check:email": "node check-email.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -19,5 +20,8 @@
     "mongoose": "^9.6.2",
     "nodemailer": "^6.9.13",
     "openai": "^4.38.3"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

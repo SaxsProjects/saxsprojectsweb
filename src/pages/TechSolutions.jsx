@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { business, whatsappLink } from '../config/business';
+import { buildPackages, formatRange, packageMax, packageMin, techServices } from '../config/pricing';
 import { Monitor, Code, Smartphone, Database, Settings, Wrench, Check, Clock, ShieldCheck, ArrowRight, ExternalLink } from 'lucide-react';
 
 export default function TechSolutions({ setActiveTab }) {
@@ -8,8 +10,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Monitor size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Business Website Design",
-      range: "R2,800 – R4,300 ZAR",
-      time: "10 – 14 Days",
+      range: formatRange(packageMin('website'), packageMax('website')),
+      time: buildPackages.website.days,
       summary: "High-performance digital presence built to capture leads, rank on Google, and engage local users.",
       deliverables: [
         "Fully mobile-responsive design",
@@ -24,8 +26,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Code size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Custom Web Applications",
-      range: "R5,000 – R5,500 ZAR",
-      time: "14 – 21 Days",
+      range: formatRange(packageMin('webapp'), packageMax('webapp')),
+      time: buildPackages.webapp.days,
       summary: "Dynamic web portals designed for data management, client workflows, invoicing, and automation.",
       deliverables: [
         "Interactive dashboards",
@@ -40,8 +42,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Smartphone size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Mobile App Development",
-      range: "R6,000 – R8,000 ZAR",
-      time: "21 – 30 Days",
+      range: formatRange(packageMin('mobile'), packageMax('mobile')),
+      time: buildPackages.mobile.days,
       summary: "Native iOS and Android apps that put your business directly into customers' pockets.",
       deliverables: [
         "Cross-platform development (React Native/Flutter)",
@@ -56,8 +58,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Database size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Database Design & Management",
-      range: "R2,500 – R4,000 ZAR",
-      time: "5 – 10 Days",
+      range: formatRange(techServices.database.min, techServices.database.max),
+      time: techServices.database.time,
       summary: "Scalable, secure database architectures built for growth and performance.",
       deliverables: [
         "Database architecture design",
@@ -72,8 +74,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Settings size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Computer & Laptop Software Updates",
-      range: "R500 – R1,500 ZAR",
-      time: "Same Day",
+      range: formatRange(techServices.softwareUpdates.min, techServices.softwareUpdates.max),
+      time: techServices.softwareUpdates.time,
       summary: "Professional software installation, updates, and configuration for optimal device performance.",
       deliverables: [
         "OS and driver updates",
@@ -88,8 +90,8 @@ export default function TechSolutions({ setActiveTab }) {
     {
       icon: <Wrench size={40} style={{ color: 'var(--primary-glow)' }} />,
       title: "Computer & Laptop Repairs",
-      range: "R200 – R2,000 ZAR",
-      time: "24 – 48 Hours",
+      range: formatRange(techServices.repairs.min, techServices.repairs.max),
+      time: techServices.repairs.time,
       summary: "Professional diagnosis and repair for hardware and software issues.",
       deliverables: [
         "Hardware diagnostics",
@@ -135,8 +137,8 @@ export default function TechSolutions({ setActiveTab }) {
   const handleQuoteSubmit = (e) => {
     e.preventDefault();
     const { name, contact, service, message } = quoteForm;
-    const formattedMessage = `Hi, I'm ${name || 'interested customer'}. I need ${service}. ${message || ''} Contact: ${contact}`;
-    window.open(`https://wa.me/27613991212?text=${encodeURIComponent(formattedMessage)}`, '_blank');
+    const formattedMessage = `Hi SaxsProjects, I'm ${name || 'interested in a quote'}. I need: ${service}.\n\n${message || ''}\n\nBest way to reach me: ${contact}`;
+    window.open(whatsappLink(formattedMessage), '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -150,7 +152,7 @@ export default function TechSolutions({ setActiveTab }) {
           PROFESSIONAL TECH SOLUTIONS
         </span>
 
-        <h1 style={{ fontSize: '3.5rem', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
+        <h1 style={{ fontSize: 'clamp(2.1rem, 6vw, 3.5rem)', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
           From custom web apps to <span className="gradient-text">hardware repairs</span>
         </h1>
 
@@ -166,7 +168,7 @@ export default function TechSolutions({ setActiveTab }) {
           <button onClick={() => setActiveTab('contact')} className="neon-glow-btn">
             Get a Free Quote <ArrowRight size={16} />
           </button>
-          <a href="https://github.com/saxs-14" target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <a href={business.social.github} target="_blank" rel="noopener noreferrer" className="neon-outline-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <ExternalLink size={16} /> View GitHub
           </a>
         </div>
@@ -176,22 +178,22 @@ export default function TechSolutions({ setActiveTab }) {
           <div className="trust-badge">
             <ShieldCheck size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Transparent Pricing</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Written Quotations</p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>No surprise invoices</p>
             </div>
           </div>
           <div className="trust-badge">
             <ShieldCheck size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>100% Transparent</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Direct communication</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Direct Contact</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Talk to the developer</p>
             </div>
           </div>
           <div className="trust-badge">
             <Clock size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Fast Delivery</p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>30 days post-launch</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>30 Days Support</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Included after launch</p>
             </div>
           </div>
           <div className="trust-badge">
@@ -213,7 +215,7 @@ export default function TechSolutions({ setActiveTab }) {
             <p>Qualified developer with proven expertise and real-world experience.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem' }}>
             <div className="glass-card">
               <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Check size={20} style={{ color: 'var(--primary-glow)' }} />
@@ -227,10 +229,10 @@ export default function TechSolutions({ setActiveTab }) {
             <div className="glass-card">
               <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Check size={20} style={{ color: 'var(--primary-glow)' }} />
-                Competition Winner
+                National Competitor
               </h3>
               <p style={{ color: 'var(--text-secondary)' }}>
-                Selected for the CHPC High-Performance Computing national team (2025). Demonstrates capability to compete at the highest level of technical excellence.
+                Selected for the CHPC High-Performance Computing national team (2025). Competing nationally in high-performance computing shows the depth behind every build.
               </p>
             </div>
 
@@ -285,7 +287,7 @@ export default function TechSolutions({ setActiveTab }) {
           <p>Bespoke digital solutions with clear scopes, timelines, and outcomes. No mystery billing.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: '3rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(420px, 100%), 1fr))', gap: '3rem' }}>
           {services.map((s, idx) => (
             <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '2.5rem' }}>
               <div>
@@ -294,8 +296,8 @@ export default function TechSolutions({ setActiveTab }) {
                     {s.icon}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>FROM</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{s.range.split('–')[0].trim()}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>PRICE</p>
+                    <p style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Written quote</p>
                   </div>
                 </div>
 
@@ -386,7 +388,7 @@ export default function TechSolutions({ setActiveTab }) {
             <p>Real projects built with real expertise. See what we deliver.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', gap: '2rem' }}>
             {portfolio.map((project, idx) => (
               <div key={idx} className="glass-card">
                 <div style={{ marginBottom: '1rem' }}>
@@ -415,7 +417,7 @@ export default function TechSolutions({ setActiveTab }) {
           <p>Fill in the details below and we'll reply on WhatsApp with a tailored proposal.</p>
         </div>
 
-        <form onSubmit={handleQuoteSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <form onSubmit={handleQuoteSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(240px, 100%), 1fr))', gap: '1.5rem', maxWidth: '1000px', margin: '0 auto' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
             Name
             <input
@@ -456,7 +458,7 @@ export default function TechSolutions({ setActiveTab }) {
             </select>
           </label>
 
-          <label style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+          <label style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
             Brief Message
             <textarea
               name="message"
@@ -468,7 +470,7 @@ export default function TechSolutions({ setActiveTab }) {
             />
           </label>
 
-          <button type="submit" className="neon-glow-btn" style={{ gridColumn: 'span 2', justifySelf: 'center', padding: '1rem 2rem', fontSize: '1rem' }}>
+          <button type="submit" className="neon-glow-btn" style={{ gridColumn: '1 / -1', justifySelf: 'center', padding: '1rem 2rem', fontSize: '1rem' }}>
             Send Request on WhatsApp <ArrowRight size={16} />
           </button>
         </form>

@@ -175,7 +175,7 @@ async function runTests() {
       ok('MongoDB connection closed cleanly.');
     } catch (e) {
       err(`MongoDB error: ${e.message}`);
-      try { await mongoose.disconnect(); } catch (_) {}
+      try { await mongoose.disconnect(); } catch { /* already disconnected */ }
     }
   }
 

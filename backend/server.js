@@ -2,11 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { admin, auth, db, firebaseAdminActive, verifyUserToken } from './firebase.js';
-import nodemailer from 'nodemailer';
+import { admin, auth, db, firebaseAdminActive, loadServiceAccount } from './firebase.js';
+import { sendMail, smtpConfigured } from './mailer.js';
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
@@ -23,11 +22,63 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com').toLowerCase();
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+// Mock auth (unsigned tokens / raw emails) is ONLY for local development and
+// must be switched on explicitly. It is always off in production.
+const ALLOW_MOCK_AUTH = !IS_PRODUCTION && process.env.ALLOW_MOCK_AUTH === 'true';
+
+// Only the website itself may call this API from a browser.
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'https://www.saxsprojects.co.za,https://saxsprojects.co.za,http://localhost:5173')
+  .split(',')
+  .map((o) => o.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+app.use(cors({
+  origin: (origin, callback) => callback(null, !origin || ALLOWED_ORIGINS.includes(origin)),
+}));
+app.use(express.json({ limit: '100kb' }));
+
+// Escape user-supplied text before putting it in an HTML email.
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const isAdminUser = (user) => Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+
+// Clients only ever see their own records; the admin may view any client via X-Target-Client.
+const targetClientEmail = (req) => {
+  const requested = req.headers['x-target-client'];
+  return String(requested && isAdminUser(req.user) ? requested : req.user.email).toLowerCase();
+};
+
+// Tiny in-memory rate limiter for public form endpoints (per IP).
+const rateLimit = ({ windowMs, max }) => {
+  const hits = new Map();
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = req.ip;
+    const recent = (hits.get(key) || []).filter((t) => now - t < windowMs);
+    if (recent.length >= max) {
+      return res.status(429).json({ error: 'Too many requests. Please try again later or contact us on WhatsApp.' });
+    }
+    recent.push(now);
+    hits.set(key, recent);
+    if (hits.size > 5000) hits.clear();
+    next();
+  };
+};
+const publicFormLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 8 });
+
 
 // ========================================================
 // 1. DATABASE CONNECTION
@@ -47,7 +98,7 @@ mongoose.connect(MONGODB_URI)
 // ========================================================
 if (!firebaseAdminActive) {
   console.log('---------------------------------------------------------');
-  console.log('⚠️  firebase-admin-config.json NOT FOUND.');
+  console.log('⚠️  Firebase service account NOT FOUND (FIREBASE_SERVICE_ACCOUNT / firebase-admin-config.json).');
   console.log('The backend is running in Mock Auth & Local Sync Mode.');
   console.log('For production verification, place your Firebase Private Key JSON at:');
   console.log(path.join(__dirname, 'firebase-admin-config.json'));
@@ -87,11 +138,13 @@ const authMiddleware = async (req, res, next) => {
 
   try {
     if (firebaseAdminActive) {
-      // Real Firebase JWT token verification using verifyUserToken helper
-      const uid = await verifyUserToken(token);
+      // Real Firebase ID token verification
       const decodedToken = await auth.verifyIdToken(token);
       req.user = decodedToken;
       next();
+    } else if (!ALLOW_MOCK_AUTH) {
+      console.error('Rejected request: Firebase Admin is not configured and mock auth is disabled.');
+      return res.status(503).json({ error: 'Authentication is not configured on this server.' });
     } else {
       // Mock JWT decoder for testing
       const parts = token.split('.');
@@ -127,9 +180,7 @@ const authMiddleware = async (req, res, next) => {
 
 // Check if current user is admin
 const adminOnly = (req, res, next) => {
-  const adminEmail = (process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com').toLowerCase();
-  
-  if (req.user && req.user.email && req.user.email.toLowerCase() === adminEmail) {
+  if (isAdminUser(req.user)) {
     next();
   } else {
     return res.status(403).json({ error: 'Forbidden: Exclusive administrator credentials required.' });
@@ -140,24 +191,20 @@ const adminOnly = (req, res, next) => {
 // 3. GOOGLE MEET & CALENDAR SERVICE
 // ========================================================
 const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
-  const ownerEmail = process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com';
   let googleAuthClient = null;
 
-  // 1. Try to load credentials from firebase-admin-config.json if it exists
-  const serviceAccountPath = path.join(__dirname, 'firebase-admin-config.json');
-  if (fs.existsSync(serviceAccountPath)) {
-    try {
-      const credentials = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  // 1. Use the Firebase service account (it is also a Google service account)
+  try {
+    const credentials = loadServiceAccount();
+    if (credentials) {
       googleAuthClient = new google.auth.GoogleAuth({
         credentials,
         scopes: ['https://www.googleapis.com/auth/calendar'],
       });
       console.log(`✅ Using service account for Google Calendar API (${credentials.client_email})`);
-    } catch (err) {
-      console.error('❌ Error initializing Google Calendar API with firebase-admin-config.json:', err.message);
     }
-  } else {
-    console.log('⚠️  firebase-admin-config.json not found, attempting alternative auth methods...');
+  } catch (err) {
+    console.error('❌ Error initializing Google Calendar API with the service account:', err.message);
   }
 
   // 2. Fall back to GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY if config JSON not found
@@ -190,7 +237,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
         }
       } catch (dateErr) {
         console.error('❌ Date parsing error:', dateErr.message);
-        throw new Error('Invalid date/time format provided');
+        throw new Error('Invalid date/time format provided', { cause: dateErr });
       }
 
       const endTime = new Date(startTime.getTime() + 15 * 60 * 1000); // 15-min call
@@ -200,7 +247,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
       // Note: Don't mix ISO dateTime with timeZone field - use one or the other
       const event = {
         summary: 'SaxsProjects 15-Min Technical Scope Consultation',
-        description: `Technical alignment call with ${attendeeEmail}. We will review wireframes, API integrations, and database architecture.`,
+        description: `Free 15-minute consultation with ${attendeeEmail}.`,
         start: { dateTime: startTime.toISOString() },
         end: { dateTime: endTime.toISOString() }
       };
@@ -211,8 +258,17 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
       try {
         // Create on service account's primary calendar
         response = await calendar.events.insert({
-          calendarId: 'primary',
-          resource: event
+          calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+          conferenceDataVersion: 1,
+          resource: {
+            ...event,
+            conferenceData: {
+              createRequest: {
+                requestId: `saxs-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                conferenceSolutionKey: { type: 'hangoutsMeet' }
+              }
+            }
+          }
         });
         console.log('✅ Calendar event created successfully on primary calendar.');
       } catch (insertErr) {
@@ -238,22 +294,10 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
         }
       }
 
-      // Generate a Meet URL based on event ID
-      if (response.data.id) {
-        // Google Meet URL structure using event hash
-        const meetUrl = `https://meet.google.com/${response.data.id.replace(/[^a-z0-9]/g, '')}`;
-        console.log('✅ Generated Google Meet URL from event ID:', meetUrl);
-        return meetUrl;
-      }
-
-      // Fallback to htmlLink if nothing else works
-      if (response.data.htmlLink) {
-        console.log('✅ Calendar event link:', response.data.htmlLink);
-        return response.data.htmlLink;
-      }
-
-      console.error('❌ No meet link, hangout link, or event link found in calendar response.');
-      throw new Error('Could not extract Meet link from calendar event');
+      // Never invent a meeting URL: a made-up meet.google.com link sends the
+      // client to a meeting that doesn't exist.
+      console.error('❌ Calendar event created but Google returned no Meet link.');
+      throw new Error('Google Calendar did not return a Meet link');
       
     } catch (error) {
       console.error('❌ Google Calendar API error:', error.message);
@@ -268,12 +312,9 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 // ========================================================
 // 4. NODEMAILER EMAIL DISPATCH SERVICE
 // ========================================================
-const sendConfirmationEmail = async (clientEmail, clientName, dateTimeString, meetLink) => {
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM || 'saxs.solutions25@gmail.com';
+const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString, meetLink) => {
+  const clientName = escapeHtml(rawClientName);
+  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
 
   const dateFormatted = new Date(dateTimeString).toLocaleString('en-ZA', {
     weekday: 'long',
@@ -307,28 +348,17 @@ const sendConfirmationEmail = async (clientEmail, clientName, dateTimeString, me
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">Please ensure you are logged into your Google account and have verified your microphone / video setup before the meeting starts.</p>
       
       <div style="border-top: 1px solid #1e3a5f; padding-top: 20px; margin-top: 30px; text-align: center; font-size: 12px; color: #8da2bb;">
-        <p style="margin: 0 0 5px 0;">SaxsProjects Digital Architecture • saxs.solutions25@gmail.com</p>
-        <p style="margin: 0;">Call: 0714135824 / 0613991212 • WhatsApp: +27 61 399 1212</p>
+        <p style="margin: 0 0 5px 0;">SaxsProjects • ${escapeHtml(ADMIN_EMAIL)}</p>
+        <p style="margin: 0;">Call: 071 413 5824 / 061 399 1212 • WhatsApp: +27 61 399 1212</p>
       </div>
     </div>
   `;
 
-  if (host && user && pass) {
+  if (smtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: port == 465, // true for port 465, false for 587
-        auth: {
-          user,
-          pass,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: fromEmail,
+      const info = await sendMail({
         to: clientEmail,
-        cc: fromEmail,
+        bcc: ownerEmail, // so the booking also lands in your inbox
         subject: 'Confirmed: SaxsProjects 15-Min Consultation Call',
         html: emailHtml
       });
@@ -337,14 +367,19 @@ const sendConfirmationEmail = async (clientEmail, clientName, dateTimeString, me
       return;
     } catch (error) {
       console.error('Nodemailer SMTP dispatch error:', error);
+      throw new Error('Failed to send confirmation email', { cause: error });
     }
+  }
+
+  if (IS_PRODUCTION) {
+    throw new Error('SMTP is not configured; cannot send confirmation email');
   }
 
   // Fallback: print HTML template neatly to terminal logs for verification
   console.log('\n========================================================');
   console.log('✉️  EMAIL DISPATCH (MOCK LOGGING):');
   console.log(`To: ${clientEmail}`);
-  console.log(`CC: ${fromEmail}`);
+  console.log(`BCC: ${ownerEmail}`);
   console.log(`Subject: Confirmed: SaxsProjects 15-Min Consultation Call`);
   console.log('-------------------- CONTENT ---------------------------');
   console.log(`Meeting Date: ${dateFormatted}`);
@@ -366,7 +401,7 @@ Company Information:
 - SaxsProjects: Premium digital architecture and custom software solutions
 - Founded by qualified software developer with focus on high-quality, fast delivery
 - Technologies: React, Vite, Node.js, MongoDB, Firebase, Google APIs
-- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, Saxs.solutions25@gmail.com
+- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, info@saxsprojects.co.za
 
 Services & Pricing (ZAR - South African Rand):
 WEBSITES:
@@ -395,7 +430,7 @@ FEATURES INCLUDED:
 
 BOOKING & CONTACT:
 - Free 15-minute technical consultation: Book via Contact page (Mon-Sat, 09:30-16:30 SAST)
-- Email: Saxs.solutions25@gmail.com
+- Email: info@saxsprojects.co.za
 - WhatsApp: https://wa.me/27613991212
 - Direct Call: 0714135824 (Primary) / 0613991212 (Support)
 
@@ -444,7 +479,7 @@ Response Guidelines:
   } else if (cleanInput.includes("database") || cleanInput.includes("db") || cleanInput.includes("mongodb") || cleanInput.includes("firebase")) {
     return "🔄 We use Firebase (real-time notifications) + MongoDB (structured data). Database options add R600 ZAR to website/mobile projects. Hybrid architecture ensures speed and scalability.";
   } else if (cleanInput.includes("consult") || cleanInput.includes("booking") || cleanInput.includes("call") || cleanInput.includes("meeting")) {
-    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email Saxs.solutions25@gmail.com, or WhatsApp +27 613 991 212. Let's discuss your project!";
+    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email info@saxsprojects.co.za, or WhatsApp +27 613 991 212. Let's discuss your project!";
   } else if (cleanInput.includes("hello") || cleanInput.includes("hi") || cleanInput.includes("hey") || cleanInput.includes("sup")) {
     return "👋 Hi! I'm the SaxsProjects AI Assistant. I help with questions about our websites, web apps, mobile apps, pricing, and booking consultations. What can I help you build today?";
   } else {
@@ -475,7 +510,6 @@ if (firebaseAdminActive) {
             // Auto-respond ONLY if message is from 'client' or 'user', and was sent recently
             // and we haven't already replied to this message ID
             if ((latestMsg.sender === 'client' || latestMsg.sender === 'user') && latestMsg.text) {
-              const lastRepliedKey = `last_replied_${docId}`;
               
               // Simple check to avoid circular loop
               if (latestMsg.isProcessed) return;
@@ -514,7 +548,7 @@ if (firebaseAdminActive) {
 // ========================================================
 
 // A. Clients Management
-app.post('/api/clients', async (req, res) => {
+app.post('/api/clients', authMiddleware, adminOnly, async (req, res) => {
   const { email, name, businessName, contactInfo, activeQuote } = req.body;
   if (!email || !name) {
     return res.status(400).json({ error: 'Email and Name are required.' });
@@ -599,9 +633,7 @@ app.post('/api/clients', async (req, res) => {
 
 // B. Projects Management (Authenticated Client & Developer Routes)
 app.get('/api/projects/my-project', authMiddleware, async (req, res) => {
-  // Allow admin to view specific client's project via X-Target-Client header
-  let clientEmail = req.headers['x-target-client'] || req.user.email;
-  clientEmail = clientEmail.toLowerCase();
+  const clientEmail = targetClientEmail(req);
 
   try {
     let project = await Project.findOne({ clientEmail });
@@ -609,19 +641,19 @@ app.get('/api/projects/my-project', authMiddleware, async (req, res) => {
       // Create a default project layout if none exists yet, allowing direct logins to see a draft workspace
       project = new Project({
         clientEmail,
-        title: `${req.user.name || 'Custom'} Project Site`,
-        tier: 'Small Business Website',
-        progress: 35,
-        status: 'Contact form synced! Under developer review.',
-        cost: 'R2,800 ZAR',
-        timeline: '10 Days',
+        title: `${req.user.name || 'Your'} Project`,
+        tier: 'To be confirmed',
+        progress: 0,
+        status: 'Enquiry received. We will confirm your scope and quote.',
+        cost: 'To be quoted',
+        timeline: 'To be confirmed',
         milestones: [
-          { name: "Inquiry Form Received", status: "completed" },
-          { name: "Database Lead Sync Approved", status: "completed" },
-          { name: "Scope Call & Technical Review", status: "active" },
-          { name: "Milestone Agreement Sign-off", status: "pending" },
-          { name: "Vite Core Development Phase", status: "pending" },
-          { name: "Live Production Deployment", status: "pending" }
+          { name: "Enquiry Received", status: "completed" },
+          { name: "Scope Call & Written Quote", status: "active" },
+          { name: "Agreement & Deposit", status: "pending" },
+          { name: "Design & Development", status: "pending" },
+          { name: "Review & Launch", status: "pending" },
+          { name: "30-Day Support", status: "pending" }
         ]
       });
       await project.save();
@@ -686,9 +718,7 @@ app.post('/api/projects', authMiddleware, adminOnly, async (req, res) => {
 
 // C. Billing & Invoicing API
 app.get('/api/billing/my-invoices', authMiddleware, async (req, res) => {
-  // Allow admin to view specific client's invoices via X-Target-Client header
-  let clientEmail = req.headers['x-target-client'] || req.user.email;
-  clientEmail = clientEmail.toLowerCase();
+  const clientEmail = targetClientEmail(req);
 
   try {
     const invoices = await Billing.find({ clientEmail });
@@ -770,11 +800,16 @@ app.delete('/api/billing/:id', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // D. Consultation Scheduling Endpoint (Google Meet + Emails)
-app.post('/api/schedule', async (req, res) => {
+app.post('/api/schedule', publicFormLimiter, async (req, res) => {
   const { email, name, dateTimeString } = req.body;
 
   if (!email || !dateTimeString) {
     return res.status(400).json({ error: 'Recipient Email and Date-Time String are required.' });
+  }
+
+  const requestedStart = new Date(dateTimeString);
+  if (Number.isNaN(requestedStart.getTime()) || requestedStart.getTime() < Date.now()) {
+    return res.status(400).json({ error: 'Please choose a valid time in the future.' });
   }
 
   try {
@@ -871,12 +906,22 @@ const generateAvailableSlots = (bookedSlots = []) => {
 };
 
 // D.1. Inquiry Submission Endpoint (with Email Validation and Auto-Reply)
-const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, details, activeQuote) => {
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM || 'saxs.solutions25@gmail.com';
+const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBizName, rawDetails, rawQuote, extras = {}) => {
+  const clientEmail = escapeHtml(rawClientEmail);
+  const clientName = escapeHtml(rawClientName);
+  const bizName = escapeHtml(rawBizName);
+  const details = escapeHtml(rawDetails).replace(/\n/g, '<br>');
+  const phone = escapeHtml(extras.phone);
+  const service = escapeHtml(extras.service);
+  const activeQuote = rawQuote ? {
+    type: escapeHtml(rawQuote.type),
+    pages: escapeHtml(rawQuote.pages),
+    featureList: Array.isArray(rawQuote.featureList) ? rawQuote.featureList.map(escapeHtml) : [],
+    price: escapeHtml(rawQuote.price),
+    deposit: Number(rawQuote.deposit) || 0,
+    balance: Number(rawQuote.balance) || 0,
+    timeline: escapeHtml(rawQuote.timeline),
+  } : null;
 
   // Email to admin
   const adminEmailHtml = `
@@ -892,11 +937,13 @@ const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, de
         <p style="margin: 0 0 10px 0;"><strong>Client Name:</strong> ${clientName}</p>
         <p style="margin: 0 0 10px 0;"><strong>Business Name:</strong> ${bizName || 'Not provided'}</p>
         <p style="margin: 0 0 10px 0;"><strong>Email:</strong> <a href="mailto:${clientEmail}" style="color: #0066ff;">${clientEmail}</a></p>
+        ${phone ? `<p style="margin: 0 0 10px 0;"><strong>Phone:</strong> ${phone}</p>` : ''}
+        ${service ? `<p style="margin: 0 0 10px 0;"><strong>Service:</strong> ${service}</p>` : ''}
         <p style="margin: 0;"><strong>Submitted:</strong> ${new Date().toLocaleString('en-ZA', { timeZone: 'Africa/Johannesburg' })}</p>
       </div>
       
       <h4 style="color: #0066ff; margin-top: 20px; margin-bottom: 10px;">Project Details:</h4>
-      <div style="background: var(--bg-deep); padding: 15px; border-radius: 8px; border-left: 3px solid #0066ff; margin-bottom: 20px;">
+      <div style="background: #0b1626; padding: 15px; border-radius: 8px; border-left: 3px solid #0066ff; margin-bottom: 20px;">
         <p style="margin: 0; line-height: 1.6; color: #dbe4ef;">${details || 'No details provided.'}</p>
       </div>
       
@@ -929,23 +976,22 @@ const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, de
       
       <p style="font-size: 15px; line-height: 1.6; color: #dbe4ef;">Hi ${clientName},</p>
       
-      <p style="font-size: 15px; line-height: 1.6; color: #dbe4ef;">Thank you for your inquiry submission to <strong>SaxsProjects</strong>. We have received your request and logged it securely in our database.</p>
+      <p style="font-size: 15px; line-height: 1.6; color: #dbe4ef;">Thank you for contacting <strong>SaxsProjects</strong>. We have received your enquiry.</p>
       
       <div style="background: rgba(0, 102, 255, 0.04); border: 1px solid #0066ff; padding: 20px; border-radius: 8px; margin: 25px 0;">
         <p style="margin: 0 0 10px 0; font-size: 13px; color: #8da2bb; text-transform: uppercase; font-weight: bold;">What Happens Next:</p>
         <ul style="margin: 0; padding-left: 20px; color: #dbe4ef;">
-          <li style="margin-bottom: 8px;">Our development team will review your inquiry within 2-4 business hours</li>
-          <li style="margin-bottom: 8px;">You will receive a follow-up email with next steps and timeline</li>
-          <li style="margin-bottom: 8px;">We can schedule your free 15-minute consultation directly from the portal</li>
-          <li>Your project details are securely stored in your SaxsProjects portal</li>
+          <li style="margin-bottom: 8px;">We review your enquiry and reply within one business day</li>
+          <li style="margin-bottom: 8px;">If needed, we set up a free 15-minute call to confirm the details</li>
+          <li>You receive a fixed written quote with the scope, price and timeline</li>
         </ul>
       </div>
       
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">In the meantime, feel free to reach out directly:</p>
       
-      <div style="background: var(--bg-deep); padding: 15px; border-radius: 8px; margin: 15px 0;">
-        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> Saxs.solutions25@gmail.com</p>
-        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📞 Phone:</strong> 0714135824 (Primary) / 0613991212 (Support)</p>
+      <div style="background: #0b1626; padding: 15px; border-radius: 8px; margin: 15px 0;">
+        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(ADMIN_EMAIL)}</p>
+        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📞 Phone:</strong> 071 413 5824 (Primary) / 061 399 1212 (Support)</p>
         <p style="margin: 0; color: #dbe4ef;"><strong>💬 WhatsApp:</strong> +27 61 399 1212</p>
       </div>
       
@@ -956,28 +1002,20 @@ const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, de
     </div>
   `;
 
-  if (host && user && pass) {
+  if (smtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: port == 465,
-        auth: { user, pass }
-      });
-
       // Send to admin
-      await transporter.sendMail({
-        from: fromEmail,
+      await sendMail({
         to: adminEmail,
-        subject: `[NEW LEAD] Inquiry from ${clientName} - ${bizName || 'No Business Name'}`,
+        replyTo: rawClientEmail,
+        subject: `[NEW LEAD] Inquiry from ${rawClientName} - ${rawBizName || 'No Business Name'}`.replace(/[\r\n]+/g, ' '),
         html: adminEmailHtml
       });
 
       // Send auto-reply to client
-      await transporter.sendMail({
-        from: fromEmail,
-        to: clientEmail,
-        subject: 'Thank You - Your SaxsProjects Inquiry Has Been Received',
+      await sendMail({
+        to: rawClientEmail,
+        subject: 'Thank you - your SaxsProjects enquiry has been received',
         html: clientAutoReplyHtml
       });
 
@@ -985,10 +1023,16 @@ const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, de
       return true;
     } catch (error) {
       console.error('Email sending error:', error);
+      throw new Error('Failed to send inquiry email', { cause: error });
     }
   }
 
-  // Fallback logging
+  // In production a lead that only reaches the console is a lost lead.
+  if (IS_PRODUCTION) {
+    throw new Error('SMTP is not configured; cannot deliver inquiry email');
+  }
+
+  // Development fallback logging
   console.log('\n========================================================');
   console.log('📧 INQUIRY EMAIL (MOCK LOGGING):');
   console.log('TO ADMIN:', adminEmail);
@@ -999,8 +1043,13 @@ const sendInquiryEmail = async (adminEmail, clientEmail, clientName, bizName, de
   return true;
 };
 
-app.post('/api/inquiries', async (req, res) => {
-  const { email, name, bizName, details, activeQuote } = req.body;
+app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
+  const { email, name, bizName, details, activeQuote, phone, service, consent, website } = req.body;
+
+  // Honeypot: bots fill the hidden "website" field. Pretend success, do nothing.
+  if (website) {
+    return res.status(200).json({ success: true });
+  }
 
   // Email validation
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1033,11 +1082,14 @@ app.post('/api/inquiries', async (req, res) => {
       client.businessName = bizName || client.businessName;
       client.contactInfo = details;
     }
+    if (phone) client.phone = String(phone).slice(0, 40);
+    if (service) client.service = String(service).slice(0, 120);
+    if (consent) client.consentAt = new Date();
     await client.save();
 
     // Send emails (inquiry recipient notification + auto-reply to client)
-    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || process.env.ADMIN_EMAIL || 'saxs.projects25@gmail.com';
-    await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote);
+    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
+    await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
 
     res.status(200).json({
       success: true,
@@ -1052,7 +1104,7 @@ app.post('/api/inquiries', async (req, res) => {
 });
 
 // E. Chat Helper API Endpoint (REST Fallback for Floating Bubble AI)
-app.post('/api/chat/respond', async (req, res) => {
+app.post('/api/chat/respond', authMiddleware, async (req, res) => {
   const { text } = req.body;
   if (!text) {
     return res.status(400).json({ error: 'Message text is required.' });
@@ -1070,6 +1122,11 @@ app.post('/api/chat/respond', async (req, res) => {
 // ========================================================
 // 8. ADMIN ANALYTICS & MANAGEMENT ENDPOINTS
 // ========================================================
+
+// Public liveness probe for hosting/uptime monitors (exposes no data)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ ok: true, database: mongoose.connection.readyState === 1, email: smtpConfigured() });
+});
 
 // Admin Health Check Endpoint
 app.get('/api/health/check', authMiddleware, adminOnly, async (req, res) => {
@@ -1100,8 +1157,8 @@ app.get('/api/health/check', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-// Test Database Connection (No auth required for initial setup)
-app.get('/api/test/database', async (req, res) => {
+// Test Database Connection (admin only)
+app.get('/api/test/database', authMiddleware, adminOnly, async (req, res) => {
   try {
     // Test MongoDB connection
     await mongoose.connection.db.admin().ping();
@@ -1237,7 +1294,7 @@ app.post('/api/auth/google', async (req, res) => {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: req.headers['x-redirect-uri'] || 'http://localhost:5173/callback',
+      redirect_uri: req.headers['x-redirect-uri'] || `${FRONTEND_URL}/callback`,
       grant_type: 'authorization_code'
     });
 
@@ -1300,11 +1357,11 @@ app.get('/api/auth/google/callback', async (req, res) => {
   const { code, error } = req.query;
 
   if (error) {
-    return res.redirect(`http://localhost:5173/login?error=${encodeURIComponent(error)}`);
+    return res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent(error)}`);
   }
 
   if (!code) {
-    return res.redirect('http://localhost:5173/login?error=No+authorization+code+received');
+    return res.redirect(`${FRONTEND_URL}/dashboard?error=No+authorization+code+received`);
   }
 
   try {
@@ -1339,7 +1396,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     }
 
     // Redirect to frontend with tokens as query params
-    const frontendUrl = `http://localhost:5173/callback?` + new URLSearchParams({
+    const frontendUrl = `${FRONTEND_URL}/callback?` + new URLSearchParams({
       access_token: tokens.access_token,
       id_token: tokens.id_token,
       refresh_token: tokens.refresh_token || '',
@@ -1350,7 +1407,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
     res.redirect(frontendUrl);
   } catch (error) {
     console.error('Google OAuth Callback Error:', error);
-    res.redirect(`http://localhost:5173/login?error=${encodeURIComponent('Authentication failed')}`);
+    res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent('Authentication failed')}`);
   }
 });
 

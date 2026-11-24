@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { whatsappLink } from '../config/business';
+import { formatZAR, studentServices } from '../config/pricing';
 import { Lightbulb, Code, Wrench, BookOpen, CheckCircle, ArrowRight, MessageSquare } from 'lucide-react';
 
 export default function StudentServices({ setActiveTab }) {
@@ -15,7 +17,7 @@ export default function StudentServices({ setActiveTab }) {
         "Clear concept explanations",
         "Problem-solving strategies"
       ],
-      price: "From R200 ZAR per hour"
+      price: `From ${formatZAR(studentServices.tutoring.from)} ${studentServices.tutoring.unit}`.trim()
     },
     {
       icon: <Code size={40} />,
@@ -26,7 +28,7 @@ export default function StudentServices({ setActiveTab }) {
         "Best practices teaching",
         "Problem-solving methodology"
       ],
-      price: "From R300 ZAR per hour"
+      price: `From ${formatZAR(studentServices.coding.from)} ${studentServices.coding.unit}`.trim()
     },
     {
       icon: <Lightbulb size={40} />,
@@ -37,7 +39,7 @@ export default function StudentServices({ setActiveTab }) {
         "Citation and referencing support",
         "Writing techniques and structure"
       ],
-      price: "From R150 ZAR per session"
+      price: `From ${formatZAR(studentServices.assignmentStrategy.from)} ${studentServices.assignmentStrategy.unit}`.trim()
     },
     {
       icon: <Wrench size={40} />,
@@ -48,7 +50,7 @@ export default function StudentServices({ setActiveTab }) {
         "All components configured",
         "Technical support included"
       ],
-      price: "From R250 ZAR"
+      price: `From ${formatZAR(studentServices.techSetup.from)} ${studentServices.techSetup.unit}`.trim()
     }
   ];
 
@@ -67,27 +69,6 @@ export default function StudentServices({ setActiveTab }) {
     "Psychology"
   ];
 
-  const testimonials = [
-    {
-      quote: "The tutoring sessions helped me understand programming concepts that I struggled with. Now I can write my own code with confidence.",
-      author: "Lindy M.",
-      field: "Computer Science",
-      rating: 5
-    },
-    {
-      quote: "I learned the proper way to structure essays and cite sources correctly. This knowledge will help me throughout my academic career.",
-      author: "Thembi S.",
-      field: "English Literature",
-      rating: 5
-    },
-    {
-      quote: "Professional tech support made everything easy. My Microsoft Office is set up perfectly and I got help understanding the tools.",
-      author: "Kabelo T.",
-      field: "Business Admin",
-      rating: 5
-    }
-  ];
-
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -95,9 +76,8 @@ export default function StudentServices({ setActiveTab }) {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    const whatsappMessage = `Hi! I'm interested in: ${formData.service}. ${formData.message}`;
-    const whatsappLink = `https://wa.me/27613991212?text=${encodeURIComponent(whatsappMessage)}`;
-    window.open(whatsappLink, '_blank');
+    const whatsappMessage = `Hi SaxsProjects, I'm ${formData.name}. I'm interested in: ${formData.service}.\n\n${formData.message}\n\nBest way to reach me: ${formData.contact}`;
+    window.open(whatsappLink(whatsappMessage), '_blank', 'noopener,noreferrer');
     setFormData({ name: '', contact: '', service: '', message: '' });
   };
 
@@ -112,7 +92,7 @@ export default function StudentServices({ setActiveTab }) {
           ACADEMIC & TECH SUPPORT
         </span>
 
-        <h1 style={{ fontSize: '3.5rem', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
+        <h1 style={{ fontSize: 'clamp(2.1rem, 6vw, 3.5rem)', lineHeight: '1.2', fontWeight: 900, marginBottom: '1.5rem', letterSpacing: '-0.03em' }}>
           Master Your Skills & <span className="gradient-text">Succeed Academically</span>
         </h1>
 
@@ -121,7 +101,7 @@ export default function StudentServices({ setActiveTab }) {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <a href="https://wa.me/27613991212?text=Hi! I'd like to learn more about your tutoring services." target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+          <a href={whatsappLink("Hi SaxsProjects! I'd like to learn more about your tutoring services.")} target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <MessageSquare size={16} /> Chat on WhatsApp
           </a>
           <button onClick={() => setActiveTab('contact')} className="neon-outline-btn">
@@ -171,7 +151,7 @@ export default function StudentServices({ setActiveTab }) {
             <p>Comprehensive guidance that builds your skills and promotes academic integrity.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem' }}>
             {services.map((s, idx) => (
               <div key={idx} className="glass-card" style={{ display: 'flex', flexDirection: 'column' }}>
                 <div style={{ marginBottom: '1.5rem', color: 'var(--primary-glow)' }}>
@@ -193,8 +173,8 @@ export default function StudentServices({ setActiveTab }) {
                   </ul>
                 </div>
                 <div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-glow)', marginBottom: '1rem' }}>{s.price}</p>
-                  <a href="https://wa.me/27613991212?text=I'm interested in learning more about your services" target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-glow)', marginBottom: '1rem' }}>Price on request</p>
+                  <a href={whatsappLink(`Hi SaxsProjects! I'm interested in: ${s.title}.`)} target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     Learn More
                   </a>
                 </div>
@@ -212,7 +192,7 @@ export default function StudentServices({ setActiveTab }) {
           <p>Three simple steps to begin your learning journey.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem', maxWidth: '900px', margin: '0 auto' }}>
           <div className="glass-card" style={{ textAlign: 'center' }}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 700, margin: '0 auto 1.5rem' }}>1</div>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '0.75rem' }}>Reach Out</h3>

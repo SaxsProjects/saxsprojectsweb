@@ -1,6 +1,7 @@
 
 import { Award, Heart, CheckCircle, Calendar, Target, ExternalLink } from 'lucide-react';
 import ownerPhoto from '../assets/owner-photo.jpeg';
+import { business } from '../config/business';
 
 export default function About() {
   const qualifications = [
@@ -66,7 +67,7 @@ export default function About() {
       <section className="section-padding container" style={{ position: 'relative' }}>
         <div style={{ position: 'absolute', top: '-5%', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(0, 102, 255, 0.08) 0%, transparent 70%)', filter: 'blur(40px)', zIndex: -1 }}></div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4rem', alignItems: 'center', marginBottom: '4rem' }}>
+        <div className="two-col" style={{ gap: '4rem', marginBottom: '4rem' }}>
           {/* Owner Photo Section */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div style={{
@@ -108,14 +109,14 @@ export default function About() {
           {/* Introduction & Credentials */}
           <div>
             <div style={{ marginBottom: '2rem' }}>
-              <h2 style={{ fontSize: '2.25rem', marginBottom: '1rem', lineHeight: '1.2' }}>
+              <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.25rem)', marginBottom: '1rem', lineHeight: '1.2' }}>
                 Hi, I'm <span style={{ color: 'var(--primary-glow)' }}>Phathutshedzo Mamagau</span>
-              </h2>
+              </h1>
               <p style={{ fontSize: '1.05rem', color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.7' }}>
                 Diploma-qualified software developer and university tutor. I combine professional development expertise with genuine passion for education and innovation.
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: '1.5rem', marginTop: '2rem' }}>
                 {qualifications.map((qual, idx) => (
                   <div key={idx} className="glass-card" style={{ padding: '1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -155,7 +156,7 @@ export default function About() {
             <p>The evolution of SaxsProjects reflects my commitment to both business and education.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', maxWidth: '1000px', margin: '0 auto' }}>
+          <div className="two-col" style={{ alignItems: 'stretch', maxWidth: '1000px', margin: '0 auto' }}>
             <div className="glass-card">
               <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <Target size={24} style={{ color: 'var(--primary-glow)' }} />
@@ -247,7 +248,7 @@ export default function About() {
             <p>Expert proficiency across frontend, backend, databases, and cloud platforms.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '1rem', maxWidth: '1000px', margin: '0 auto' }}>
             {stack.map((tech, idx) => (
               <div key={idx} className="glass-card" style={{ padding: '1.5rem', textAlign: 'center' }}>
                 <p style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
@@ -268,7 +269,7 @@ export default function About() {
           <h2>Why Work With Me?</h2>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', gap: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
           <div className="glass-card">
             <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <CheckCircle size={20} style={{ color: 'var(--primary-glow)' }} />
@@ -339,13 +340,12 @@ export default function About() {
             Explore my GitHub profile to see real projects and code quality.
           </p>
           <a
-            href="https://github.com/saxs-14"
+            href={business.social.github}
             target="_blank"
             rel="noopener noreferrer"
             className="neon-glow-btn"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            <ExternalLink size={18} />
             github.com/saxs-14
             <ExternalLink size={16} />
           </a>
