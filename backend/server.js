@@ -28,9 +28,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com').toLowerCase();
-// Customer-facing address (email footers, reply-to, where new leads go by default).
-const BUSINESS_EMAIL = (process.env.BUSINESS_EMAIL || 'info@saxsprojects.co.za').toLowerCase();
+// Admin access. In production there is no built-in default: with neither
+// ADMIN_UID nor ADMIN_EMAIL set, nobody is admin (fail closed).
+// ADMIN_UID (the Firebase user ID of the admin account) is the strongest option;
+// matching by email also requires Firebase to report the email as verified.
+const ADMIN_UID = (process.env.ADMIN_UID || '').trim() || null;
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || (IS_PRODUCTION ? '' : 'admin@saxsprojects.co.za')).trim().toLowerCase();
+// Address shown to clients in emails (the admin login stays private).
+const PUBLIC_EMAIL = process.env.PUBLIC_EMAIL || 'info@saxsprojects.co.za';
 // Mock auth (unsigned tokens / raw emails) is ONLY for local development and
 // must be switched on explicitly. It is always off in production.
 const ALLOW_MOCK_AUTH = !IS_PRODUCTION && process.env.ALLOW_MOCK_AUTH === 'true';
@@ -64,7 +69,13 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-const isAdminUser = (user) => Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+const isAdminUser = (user) => {
+  if (!user) return false;
+  if (ADMIN_UID) return user.uid === ADMIN_UID;
+  if (!ADMIN_EMAIL || !user.email || user.email.toLowerCase() !== ADMIN_EMAIL) return false;
+  // Mock users in local development have no verification flag.
+  return user.email_verified === true || !IS_PRODUCTION;
+};
 
 // Clients only ever see their own records; the admin may view any client via X-Target-Client.
 const targetClientEmail = (req) => {
@@ -316,7 +327,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 // 4. CONSULTATION CONFIRMATION EMAIL
 // ========================================================
 const sendBookingEmail = async (booking) => {
-  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || BUSINESS_EMAIL;
+  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
   const name = escapeHtml(booking.name);
   const when = booking.startsAt.toLocaleString('en-ZA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -333,7 +344,7 @@ const sendBookingEmail = async (booking) => {
       <p>Your consultation is booked for <strong>${escapeHtml(when)} (SAST)</strong>.</p>
       ${how}
       <p>The calendar invite is attached. Need to change the time? Just reply to this email or WhatsApp us on +27 61 399 1212.</p>
-      <p style="color:#888; font-size:12px; margin-top:24px;">SaxsProjects · ${escapeHtml(BUSINESS_EMAIL)} · 071 413 5824 / 061 399 1212</p>
+      <p style="color:#888; font-size:12px; margin-top:24px;">SaxsProjects · ${escapeHtml(PUBLIC_EMAIL)} · 071 413 5824 / 061 399 1212</p>
     </div>`;
   const ics = buildIcs({
     uid: `booking-${booking._id}@saxsprojects.co.za`,
@@ -342,7 +353,7 @@ const sendBookingEmail = async (booking) => {
     summary: 'SaxsProjects free 15-minute consultation',
     description: `Consultation with ${booking.name}.${booking.meetLink ? ` Google Meet: ${booking.meetLink}` : ''}${booking.phone ? ` Phone: ${booking.phone}` : ''}`,
     location: booking.meetLink || (booking.phone ? `Phone: ${booking.phone}` : 'Online'),
-    organizerEmail: process.env.SMTP_FROM || process.env.SMTP_USER || BUSINESS_EMAIL,
+    organizerEmail: process.env.SMTP_FROM || process.env.SMTP_USER || PUBLIC_EMAIL,
     organizerName: 'SaxsProjects',
     attendeeEmail: booking.email,
   });
@@ -377,7 +388,7 @@ Facts (do not invent anything beyond these):
 - Services: business websites, custom web applications, Android/iOS apps, database design, computer and laptop repairs and software updates, and learning support (tutoring and coding mentorship) for students.
 - Pricing: we don't publish prices. Every client gets a free, fixed written quotation after a short chat about what they need. Payment is a 50% deposit to start and 50% before launch.
 - Free 15-minute consultation: book on the website's Contact page, Monday to Friday, 09:30-16:30 SAST.
-- Contact: ${BUSINESS_EMAIL}, phone 071 413 5824, WhatsApp +27 61 399 1212.
+- Contact: ${PUBLIC_EMAIL}, phone 071 413 5824, WhatsApp +27 61 399 1212.
 - We reply within one business day.
 Never quote a price, promise a deadline, or agree to terms; say the written quotation will confirm those.`;
 
@@ -398,7 +409,7 @@ Never quote a price, promise a deadline, or agree to terms; say the written quot
   // Simple keyword fallback (no AI key configured, or the AI call failed)
   const q = String(question || '').toLowerCase();
   if (/(cost|price|pricing|rate|fee|zar|rand|how much|quote)/.test(q)) {
-    return `Every project is different, so we give each client a free, fixed written quotation. Tell us what you need on the Contact page, by WhatsApp (+27 61 399 1212) or at ${BUSINESS_EMAIL}, and we'll reply within one business day.`;
+    return `Every project is different, so we give each client a free, fixed written quotation. Tell us what you need on the Contact page, by WhatsApp (+27 61 399 1212) or at ${PUBLIC_EMAIL}, and we'll reply within one business day.`;
   }
   if (/(consult|book|call|meeting|appointment)/.test(q)) {
     return 'You can book a free 15-minute consultation on our Contact page, Monday to Friday, 09:30-16:30 (SAST). You will get a calendar invite by email.';
@@ -901,7 +912,7 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">In the meantime, feel free to reach out directly:</p>
       
       <div style="background: #0b1626; padding: 15px; border-radius: 8px; margin: 15px 0;">
-        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(BUSINESS_EMAIL)}</p>
+        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(PUBLIC_EMAIL)}</p>
         <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📞 Phone:</strong> 071 413 5824 (Primary) / 061 399 1212 (Support)</p>
         <p style="margin: 0; color: #dbe4ef;"><strong>💬 WhatsApp:</strong> +27 61 399 1212</p>
       </div>
@@ -1015,7 +1026,7 @@ app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
     });
 
     // Send emails (inquiry recipient notification + auto-reply to client)
-    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || BUSINESS_EMAIL;
+    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
     try {
       await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
     } catch (emailErr) {

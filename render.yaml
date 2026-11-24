@@ -24,8 +24,11 @@ services:
         value: https://www.saxsprojects.co.za,https://saxsprojects.co.za
       - key: ADMIN_EMAIL
         sync: false
-      - key: BUSINESS_EMAIL
+      - key: PUBLIC_EMAIL
         value: info@saxsprojects.co.za
+      # Firebase user ID of the admin account (Authentication > Users). Preferred over ADMIN_EMAIL.
+      - key: ADMIN_UID
+        sync: false
       - key: INQUIRY_RECIPIENT_EMAIL
         sync: false
       - key: MONGODB_URI
