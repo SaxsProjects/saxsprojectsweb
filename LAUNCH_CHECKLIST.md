@@ -29,7 +29,7 @@ Commit and push to `main`. When Vercel redeploys, the footer shows "© SaxsProje
 ## Before you take your first paying client
 
 - [ ] **Business bank account** in the company's name. Bank details go on invoices only, never on the website.
-- [ ] **Business email.** Set up an address on your domain (for example `hello@saxsprojects.co.za`) and update `contact.email`. Today the site uses `saxs.solutions25@gmail.com`, and this README's contact section uses `saxsprojects.dev@gmail.com`. Pick one.
+- [ ] **Business email.** You use Zoho Mail: once your domain mailbox (for example `hello@saxsprojects.co.za`) is ready, put it in `contact.email`. Today the site uses `saxs.solutions25@gmail.com`, and this README's contact section uses `saxsprojects.dev@gmail.com`. Pick one.
 - [ ] **Physical address.** The ECT Act (section 43) asks online businesses to publish a physical address and an address for legal notices. Add `address.street` and `address.postalCode` when you have one you're comfortable publishing.
 - [ ] **Read the Terms of Service and Privacy Policy** (`/terms`, `/privacy`). They are a solid starting draft written for South African law (CPA, ECT Act, POPIA), but they make commitments on your behalf: 50/50 payments, two design revision rounds, 30 days' free support, the refund rules, a 3-month repair warranty. Change anything that doesn't match how you work, and have someone with legal knowledge look them over if you can.
 - [ ] **Check the prices** in `src/config/pricing.js`. The old site showed different prices on different pages: the Pricing page said R3,400 / R3,800 / R4,400 / R8,600, the Services page said R3,200 / R3,500 / R4,300 / R8,000. The advertised ranges (R2,800–R4,300 and R6,000–R8,000) matched the second set, so that is what's live now.
@@ -55,7 +55,9 @@ The site works with **no backend at all**. The contact form and the "request a c
 Only do this once you're ready to run a server. Until then, leave `VITE_API_URL` unset.
 
 1. Host `backend/` on a Node host (Render, Railway, Fly.io or a VPS).
-2. Set the environment variables listed in [`backend/.env.example`](backend/.env.example). At minimum: `NODE_ENV=production`, `MONGODB_URI`, `ADMIN_EMAIL`, `SMTP_*` (for Gmail, use an App Password), `FRONTEND_URL`, `CORS_ORIGINS`.
+2. Set the environment variables listed in [`backend/.env.example`](backend/.env.example). At minimum: `NODE_ENV=production`, `MONGODB_URI`, `ADMIN_EMAIL`, `SMTP_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
+   - **Zoho Mail:** `SMTP_HOST=smtppro.zoho.com` (address on your own domain) or `smtp.zoho.com` (free @zoho.com address), `SMTP_PORT=465`, `SMTP_USER=` your full Zoho address, `SMTP_PASS=` an app-specific password from Zoho Accounts → Security → App Passwords. Leave `SMTP_FROM` empty — Zoho only sends from the mailbox you log in with.
+   - Run `npm run check:email` on the server: it logs in to Zoho and sends you a test email, with a hint if anything is wrong. Some hosts block outgoing mail ports on free plans; if the check can't connect, try port 587 or ask your host.
 3. Upload the Firebase service-account JSON as `backend/firebase-admin-config.json`. Without it, portal logins are refused (this is deliberate: the old code let anyone in as admin when it was missing).
 4. Check `https://<your-backend>/api/health` returns `{"ok":true,"database":true,"email":true}`.
 5. In Vercel → Project → Settings → Environment Variables, set `VITE_API_URL=https://<your-backend>` and redeploy.

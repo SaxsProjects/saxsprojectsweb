@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { admin, auth, db, firebaseAdminActive } from './firebase.js';
-import nodemailer from 'nodemailer';
+import { sendMail, smtpConfigured } from './mailer.js';
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs';
@@ -80,7 +80,6 @@ const rateLimit = ({ windowMs, max }) => {
 };
 const publicFormLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 8 });
 
-const smtpConfigured = () => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 
 // ========================================================
 // 1. DATABASE CONNECTION
@@ -319,11 +318,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 // ========================================================
 const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString, meetLink) => {
   const clientName = escapeHtml(rawClientName);
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM || ADMIN_EMAIL;
+  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
 
   const dateFormatted = new Date(dateTimeString).toLocaleString('en-ZA', {
     weekday: 'long',
@@ -363,22 +358,11 @@ const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString,
     </div>
   `;
 
-  if (host && user && pass) {
+  if (smtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: port == 465, // true for port 465, false for 587
-        auth: {
-          user,
-          pass,
-        },
-      });
-
-      const info = await transporter.sendMail({
-        from: fromEmail,
+      const info = await sendMail({
         to: clientEmail,
-        cc: fromEmail,
+        bcc: ownerEmail, // so the booking also lands in your inbox
         subject: 'Confirmed: SaxsProjects 15-Min Consultation Call',
         html: emailHtml
       });
@@ -399,7 +383,7 @@ const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString,
   console.log('\n========================================================');
   console.log('✉️  EMAIL DISPATCH (MOCK LOGGING):');
   console.log(`To: ${clientEmail}`);
-  console.log(`CC: ${fromEmail}`);
+  console.log(`BCC: ${ownerEmail}`);
   console.log(`Subject: Confirmed: SaxsProjects 15-Min Consultation Call`);
   console.log('-------------------- CONTENT ---------------------------');
   console.log(`Meeting Date: ${dateFormatted}`);
@@ -942,11 +926,6 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
     balance: Number(rawQuote.balance) || 0,
     timeline: escapeHtml(rawQuote.timeline),
   } : null;
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT || 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const fromEmail = process.env.SMTP_FROM || ADMIN_EMAIL;
 
   // Email to admin
   const adminEmailHtml = `
@@ -1027,18 +1006,10 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
     </div>
   `;
 
-  if (host && user && pass) {
+  if (smtpConfigured()) {
     try {
-      const transporter = nodemailer.createTransport({
-        host,
-        port: parseInt(port, 10),
-        secure: port == 465,
-        auth: { user, pass }
-      });
-
       // Send to admin
-      await transporter.sendMail({
-        from: fromEmail,
+      await sendMail({
         to: adminEmail,
         replyTo: rawClientEmail,
         subject: `[NEW LEAD] Inquiry from ${rawClientName} - ${rawBizName || 'No Business Name'}`.replace(/[\r\n]+/g, ' '),
@@ -1046,8 +1017,7 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
       });
 
       // Send auto-reply to client
-      await transporter.sendMail({
-        from: fromEmail,
+      await sendMail({
         to: rawClientEmail,
         subject: 'Thank you - your SaxsProjects enquiry has been received',
         html: clientAutoReplyHtml
