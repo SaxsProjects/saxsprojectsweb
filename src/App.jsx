@@ -7,6 +7,7 @@ import TechSolutions from './pages/TechSolutions';
 import StudentServices from './pages/StudentServices';
 import HowWeWork from './pages/HowWeWork';
 import Pricing from './pages/Pricing';
+import Products from './pages/Products';
 import About from './pages/About';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
@@ -155,6 +156,7 @@ function Footer() {
           <h4 className="site-footer__heading">Company</h4>
           <ul className="site-footer__list">
             <li><Link to="/about">About</Link></li>
+            <li><Link to="/products">Products</Link></li>
             <li><Link to="/how-we-work">How We Work</Link></li>
             <li><Link to="/blog">Guides</Link></li>
             <li><Link to="/dashboard">Client Login</Link></li>
@@ -253,6 +255,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home setActiveTab={goTo} />} />
             <Route path="/tech-solutions" element={<TechSolutions setActiveTab={goTo} />} />
+            <Route path="/products" element={<Products setActiveTab={goTo} />} />
             <Route path="/learning-support" element={<StudentServices setActiveTab={goTo} />} />
             <Route path="/pricing" element={<Pricing setActiveTab={goTo} setPrefilledQuote={setActiveQuote} />} />
             <Route path="/how-we-work" element={<HowWeWork setActiveTab={goTo} />} />

@@ -15,11 +15,20 @@ export const PAGES = [
   {
     key: 'tech-solutions',
     path: '/tech-solutions',
-    label: 'Tech Solutions',
+    label: 'Services',
     nav: true,
     title: 'Tech Solutions — Websites, Web Apps, Mobile Apps & Repairs | SaxsProjects',
     description:
       'Business websites from R2,800, custom web applications, Android and iOS apps, database design, software updates and laptop repairs. Fixed scopes and clear timelines.',
+  },
+  {
+    key: 'products',
+    path: '/products',
+    label: 'Products',
+    nav: true,
+    title: 'Products — Ukhona Pay, TapRide, EduConnectZA & more | SaxsProjects',
+    description:
+      'Products built by SaxsProjects: Ukhona Pay, TapRide smart-card fares, EduConnectZA, QuestKids and BrainBox learning apps, and an AI monitoring suite.',
   },
   {
     key: 'learning-support',
@@ -99,7 +108,7 @@ export const PAGES = [
 export const ALIASES = {
   'student-services': 'learning-support',
   services: 'tech-solutions',
-  portfolio: 'tech-solutions',
+  portfolio: 'products',
 };
 
 export const pageByKey = (key) => PAGES.find((p) => p.key === (ALIASES[key] || key));
