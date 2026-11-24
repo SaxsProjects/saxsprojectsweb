@@ -21,7 +21,6 @@ import { ALIASES, PAGES, pageByKey, pathFor } from './config/pages';
 
 // The client portal pulls in Firebase, so only load it when someone opens it.
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
-const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 
 const NAV_PAGES = PAGES.filter((p) => p.nav);
 
@@ -227,21 +226,12 @@ function PageFallback() {
 
 export default function App() {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const [activeQuote, setActiveQuote] = useState(null);
 
   usePageMeta();
 
   // Pages were written against a tab-switcher; keep that API but navigate to real URLs.
   const goTo = useCallback((key) => navigate(pathFor(key)), [navigate]);
-
-  if (pathname === '/callback') {
-    return (
-      <Suspense fallback={<PageFallback />}>
-        <OAuthCallback />
-      </Suspense>
-    );
-  }
 
   return (
     <div className="app-shell">

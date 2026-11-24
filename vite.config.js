@@ -91,7 +91,7 @@ function sitemap() {
 }
 
 function robots() {
-  return `User-agent: *\nAllow: /\nDisallow: /dashboard\nDisallow: /callback\n\nSitemap: ${business.siteUrl}/sitemap.xml\n`
+  return `User-agent: *\nAllow: /\nDisallow: /dashboard\n\nSitemap: ${business.siteUrl}/sitemap.xml\n`
 }
 
 function siteMetaPlugin() {

@@ -64,6 +64,12 @@ Only do this once you're ready to run a server. Until then, leave `VITE_API_URL`
 
 If the backend is down or email fails, the website automatically offers WhatsApp/email instead, so a lead is never silently lost.
 
+What the backend does once it is live:
+
+- **Every enquiry is saved** (even repeat ones) and emailed to you, with an auto-reply to the client. See them with `GET /api/admin/inquiries` and mark progress with `PATCH /api/admin/inquiries/:id` (`new → contacted → quoted → won / lost`).
+- **Consultation bookings are saved and can never be double-booked.** The client gets a confirmation email with a calendar invite, and you get a copy. Taken times are greyed out on the website. Manage them with `GET /api/admin/bookings?upcoming=true` and `PATCH /api/admin/bookings/:id` (`cancelled` frees the slot).
+- `npm test` in `backend/` runs the integration tests against a real (in-memory) MongoDB; CI runs them on every pull request.
+
 ## Not changed (worth a decision later)
 
 - `src/pages/AdminDashboard.jsx` and `src/pages/Portfolio.jsx` aren't linked anywhere. Portfolio shows sample projects (BrewLocal, FitFlow). Only publish it once those are replaced with real client work.

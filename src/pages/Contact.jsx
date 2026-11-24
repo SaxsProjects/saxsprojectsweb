@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MessageCircle, Send, Calendar, Clock, CheckCircle2, X, MapPin } from 'lucide-react';
 import { business, fullAddress, mailtoLink, whatsappLink } from '../config/business';
-import { hasBackend, postJSON } from '../lib/api';
+import { API_BASE_URL, hasBackend, postJSON } from '../lib/api';
 import { CONSULT_SLOTS, isSlotOpen, slotDateTimeString, upcomingBusinessDays } from '../lib/schedule';
 
 const SERVICE_OPTIONS = [
@@ -45,6 +45,25 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
   const [callStatus, setCallStatus] = useState('idle'); // idle | sending | booked | handoff | failed
   const [callError, setCallError] = useState('');
   const [meetLink, setMeetLink] = useState('');
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [slotsVersion, setSlotsVersion] = useState(0);
+
+  // With a backend, grey out times other clients have already booked.
+  useEffect(() => {
+    if (!hasBackend || !day) return undefined;
+    let cancelled = false;
+    fetch(`${API_BASE_URL}/schedule/booked-slots?date=${day}`)
+      .then((r) => (r.ok ? r.json() : { bookedSlots: [] }))
+      .then((data) => {
+        if (!cancelled) setBookedSlots(Array.isArray(data.bookedSlots) ? data.bookedSlots : []);
+      })
+      .catch(() => {
+        if (!cancelled) setBookedSlots([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [day, slotsVersion]);
 
   const selectedDay = days.find((d) => d.iso === day);
 
@@ -168,6 +187,14 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
       setCallStatus('booked');
     } catch (err) {
       console.error('Consultation booking failed:', err);
+      if (err.status === 409 || err.status === 400) {
+        // Slot just taken, or no longer valid: let them pick again.
+        setCallError(err.message);
+        setTime(null);
+        setSlotsVersion((v) => v + 1);
+        setCallStatus('idle');
+        return;
+      }
       setCallStatus('failed');
     }
   };
@@ -429,7 +456,7 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
                   <button
                     key={d.iso}
                     type="button"
-                    onClick={() => { setDay(d.iso); setTime(null); }}
+                    onClick={() => { setDay(d.iso); setTime(null); setBookedSlots([]); }}
                     aria-pressed={day === d.iso}
                     style={{
                       background: day === d.iso ? 'rgba(0, 102, 255, 0.1)' : 'var(--bg-deep)',
@@ -458,7 +485,8 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
                   <p className="field-label" style={{ marginBottom: '0.6rem' }}>2. Choose a time (SAST)</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))', gap: '0.5rem' }}>
                     {CONSULT_SLOTS.map((t) => {
-                      const open = isSlotOpen(day, t);
+                      const taken = bookedSlots.includes(t);
+                      const open = isSlotOpen(day, t) && !taken;
                       const selected = time === t;
                       return (
                         <button
@@ -481,6 +509,7 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
                           }}
                         >
                           {t}
+                          {taken && <span style={{ display: 'block', fontSize: '0.65rem' }}>Booked</span>}
                         </button>
                       );
                     })}
