@@ -40,6 +40,10 @@ export const business = {
     role: 'Founder & Lead Developer',
   },
 
+  // Login that gets admin rights in the client portal. It must exist as a
+  // Firebase Authentication user, and the backend's ADMIN_EMAIL must match.
+  adminEmail: 'admin@saxsprojects.co.za',
+
   // ---- Contact -------------------------------------------------------------
   contact: {
     email: 'info@saxsprojects.co.za',

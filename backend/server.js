@@ -26,7 +26,9 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com').toLowerCase();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@saxsprojects.co.za').toLowerCase();
+// Address shown to clients in emails (the admin login stays private).
+const PUBLIC_EMAIL = process.env.PUBLIC_EMAIL || 'info@saxsprojects.co.za';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 // Mock auth (unsigned tokens / raw emails) is ONLY for local development and
 // must be switched on explicitly. It is always off in production.
@@ -348,7 +350,7 @@ const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString,
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">Please ensure you are logged into your Google account and have verified your microphone / video setup before the meeting starts.</p>
       
       <div style="border-top: 1px solid #1e3a5f; padding-top: 20px; margin-top: 30px; text-align: center; font-size: 12px; color: #8da2bb;">
-        <p style="margin: 0 0 5px 0;">SaxsProjects • ${escapeHtml(ADMIN_EMAIL)}</p>
+        <p style="margin: 0 0 5px 0;">SaxsProjects • ${escapeHtml(PUBLIC_EMAIL)}</p>
         <p style="margin: 0;">Call: 071 413 5824 / 061 399 1212 • WhatsApp: +27 61 399 1212</p>
       </div>
     </div>
@@ -990,7 +992,7 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">In the meantime, feel free to reach out directly:</p>
       
       <div style="background: #0b1626; padding: 15px; border-radius: 8px; margin: 15px 0;">
-        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(ADMIN_EMAIL)}</p>
+        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(PUBLIC_EMAIL)}</p>
         <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📞 Phone:</strong> 071 413 5824 (Primary) / 061 399 1212 (Support)</p>
         <p style="margin: 0; color: #dbe4ef;"><strong>💬 WhatsApp:</strong> +27 61 399 1212</p>
       </div>
