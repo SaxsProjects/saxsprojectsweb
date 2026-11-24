@@ -26,7 +26,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'admin@saxsprojects.co.za').toLowerCase();
+// Admin access. In production there is no built-in default: with neither
+// ADMIN_UID nor ADMIN_EMAIL set, nobody is admin (fail closed).
+// ADMIN_UID (the Firebase user ID of the admin account) is the strongest option;
+// matching by email also requires Firebase to report the email as verified.
+const ADMIN_UID = (process.env.ADMIN_UID || '').trim() || null;
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || (IS_PRODUCTION ? '' : 'admin@saxsprojects.co.za')).trim().toLowerCase();
 // Address shown to clients in emails (the admin login stays private).
 const PUBLIC_EMAIL = process.env.PUBLIC_EMAIL || 'info@saxsprojects.co.za';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
@@ -55,7 +60,13 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-const isAdminUser = (user) => Boolean(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+const isAdminUser = (user) => {
+  if (!user) return false;
+  if (ADMIN_UID) return user.uid === ADMIN_UID;
+  if (!ADMIN_EMAIL || !user.email || user.email.toLowerCase() !== ADMIN_EMAIL) return false;
+  // Mock users in local development have no verification flag.
+  return user.email_verified === true || !IS_PRODUCTION;
+};
 
 // Clients only ever see their own records; the admin may view any client via X-Target-Client.
 const targetClientEmail = (req) => {
@@ -316,7 +327,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 // ========================================================
 const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString, meetLink) => {
   const clientName = escapeHtml(rawClientName);
-  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
+  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
 
   const dateFormatted = new Date(dateTimeString).toLocaleString('en-ZA', {
     weekday: 'long',
@@ -1090,7 +1101,7 @@ app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
     await client.save();
 
     // Send emails (inquiry recipient notification + auto-reply to client)
-    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
+    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
     await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
 
     res.status(200).json({
