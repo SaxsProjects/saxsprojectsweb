@@ -7,25 +7,42 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const serviceAccountPath = path.join(__dirname, 'firebase-admin-config.json');
+const defaultServiceAccountPath = path.join(__dirname, 'firebase-admin-config.json');
+
+// Firebase service-account credentials, from (in order):
+//   FIREBASE_SERVICE_ACCOUNT       the JSON itself (or base64 of it) in an env var
+//   FIREBASE_SERVICE_ACCOUNT_PATH  a path, e.g. /etc/secrets/firebase-admin-config.json (Render secret file)
+//   backend/firebase-admin-config.json
+export function loadServiceAccount() {
+  const inline = (process.env.FIREBASE_SERVICE_ACCOUNT || '').trim();
+  if (inline) {
+    const json = inline.startsWith('{') ? inline : Buffer.from(inline, 'base64').toString('utf8');
+    return JSON.parse(json);
+  }
+  const file = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || defaultServiceAccountPath;
+  if (fs.existsSync(file)) {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  }
+  return null;
+}
 
 let firebaseAdminActive = false;
 
 if (!admin.apps.length) {
-  if (fs.existsSync(serviceAccountPath)) {
-    try {
-      const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  try {
+    const serviceAccount = loadServiceAccount();
+    if (serviceAccount) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: "https://saxsprojects-6a7eb.firebaseio.com"
       });
       firebaseAdminActive = true;
       console.log('Firebase Admin SDK initialized successfully in firebase.js');
-    } catch (error) {
-      console.error('Error loading firebase-admin-config.json in firebase.js:', error);
+    } else {
+      console.log('⚠️ Firebase service account not found (set FIREBASE_SERVICE_ACCOUNT or add firebase-admin-config.json). Authenticated routes will be refused in production.');
     }
-  } else {
-    console.log('⚠️ firebase-admin-config.json NOT FOUND in firebase.js. Running in Mock Auth & Local Sync Mode.');
+  } catch (error) {
+    console.error('Error loading Firebase service account in firebase.js:', error.message);
   }
 } else {
   firebaseAdminActive = true;

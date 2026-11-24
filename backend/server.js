@@ -2,11 +2,10 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { admin, auth, db, firebaseAdminActive } from './firebase.js';
+import { admin, auth, db, firebaseAdminActive, loadServiceAccount } from './firebase.js';
 import { sendMail, smtpConfigured } from './mailer.js';
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
@@ -99,7 +98,7 @@ mongoose.connect(MONGODB_URI)
 // ========================================================
 if (!firebaseAdminActive) {
   console.log('---------------------------------------------------------');
-  console.log('⚠️  firebase-admin-config.json NOT FOUND.');
+  console.log('⚠️  Firebase service account NOT FOUND (FIREBASE_SERVICE_ACCOUNT / firebase-admin-config.json).');
   console.log('The backend is running in Mock Auth & Local Sync Mode.');
   console.log('For production verification, place your Firebase Private Key JSON at:');
   console.log(path.join(__dirname, 'firebase-admin-config.json'));
@@ -194,21 +193,18 @@ const adminOnly = (req, res, next) => {
 const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
   let googleAuthClient = null;
 
-  // 1. Try to load credentials from firebase-admin-config.json if it exists
-  const serviceAccountPath = path.join(__dirname, 'firebase-admin-config.json');
-  if (fs.existsSync(serviceAccountPath)) {
-    try {
-      const credentials = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
+  // 1. Use the Firebase service account (it is also a Google service account)
+  try {
+    const credentials = loadServiceAccount();
+    if (credentials) {
       googleAuthClient = new google.auth.GoogleAuth({
         credentials,
         scopes: ['https://www.googleapis.com/auth/calendar'],
       });
       console.log(`✅ Using service account for Google Calendar API (${credentials.client_email})`);
-    } catch (err) {
-      console.error('❌ Error initializing Google Calendar API with firebase-admin-config.json:', err.message);
     }
-  } else {
-    console.log('⚠️  firebase-admin-config.json not found, attempting alternative auth methods...');
+  } catch (err) {
+    console.error('❌ Error initializing Google Calendar API with the service account:', err.message);
   }
 
   // 2. Fall back to GOOGLE_SERVICE_ACCOUNT_EMAIL and GOOGLE_PRIVATE_KEY if config JSON not found

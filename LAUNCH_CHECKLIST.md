@@ -54,11 +54,11 @@ The site works with **no backend at all**. The contact form and the "request a c
 
 Only do this once you're ready to run a server. Until then, leave `VITE_API_URL` unset.
 
-1. Host `backend/` on a Node host (Render, Railway, Fly.io or a VPS).
+1. Host `backend/` on a Node host. The repo includes a Render Blueprint ([`render.yaml`](render.yaml)): in Render choose **New → Blueprint**, pick this repository, and fill in the secret values it asks for.
 2. Set the environment variables listed in [`backend/.env.example`](backend/.env.example). At minimum: `NODE_ENV=production`, `MONGODB_URI`, `ADMIN_EMAIL`, `SMTP_*`, `FRONTEND_URL`, `CORS_ORIGINS`.
    - **Zoho Mail:** `SMTP_HOST=smtppro.zoho.com` (address on your own domain) or `smtp.zoho.com` (free @zoho.com address), `SMTP_PORT=465`, `SMTP_USER=` your full Zoho address, `SMTP_PASS=` an app-specific password from Zoho Accounts → Security → App Passwords. Leave `SMTP_FROM` empty — Zoho only sends from the mailbox you log in with.
    - Run `npm run check:email` on the server: it logs in to Zoho and sends you a test email, with a hint if anything is wrong. Some hosts block outgoing mail ports on free plans; if the check can't connect, try port 587 or ask your host.
-3. Upload the Firebase service-account JSON as `backend/firebase-admin-config.json`. Without it, portal logins are refused (this is deliberate: the old code let anyone in as admin when it was missing).
+3. Paste the Firebase service-account JSON into the `FIREBASE_SERVICE_ACCOUNT` variable (or upload it as a secret file and set `FIREBASE_SERVICE_ACCOUNT_PATH`). Without it, portal logins are refused (this is deliberate: the old code let anyone in as admin when it was missing).
 4. Check `https://<your-backend>/api/health` returns `{"ok":true,"database":true,"email":true}`.
 5. In Vercel → Project → Settings → Environment Variables, set `VITE_API_URL=https://<your-backend>` and redeploy.
 
