@@ -2,19 +2,21 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { admin, auth, db, firebaseAdminActive, loadServiceAccount } from './firebase.js';
+import { auth, db, FieldValue, firebaseAdminActive, loadServiceAccount } from './firebase.js';
 import { sendMail, smtpConfigured } from './mailer.js';
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { getAuthUrl } from './googleAuth.js';
 
 // Schema imports
 import Client from './models/Client.js';
 import Project from './models/Project.js';
 import Billing from './models/Billing.js';
+import Inquiry from './models/Inquiry.js';
+import Booking from './models/Booking.js';
+import { CONSULT_SLOTS, isIsoDate, parseSlot } from './lib/slots.js';
+import { buildIcs } from './lib/ics.js';
 
 dotenv.config();
 
@@ -34,7 +36,6 @@ const ADMIN_UID = (process.env.ADMIN_UID || '').trim() || null;
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || (IS_PRODUCTION ? '' : 'admin@saxsprojects.co.za')).trim().toLowerCase();
 // Address shown to clients in emails (the admin login stays private).
 const PUBLIC_EMAIL = process.env.PUBLIC_EMAIL || 'info@saxsprojects.co.za';
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 // Mock auth (unsigned tokens / raw emails) is ONLY for local development and
 // must be switched on explicitly. It is always off in production.
 const ALLOW_MOCK_AUTH = !IS_PRODUCTION && process.env.ALLOW_MOCK_AUTH === 'true';
@@ -51,6 +52,14 @@ app.use(cors({
   origin: (origin, callback) => callback(null, !origin || ALLOWED_ORIGINS.includes(origin)),
 }));
 app.use(express.json({ limit: '100kb' }));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Cache-Control', 'no-store');
+  if (IS_PRODUCTION) res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  next();
+});
 
 // Escape user-supplied text before putting it in an HTML email.
 const escapeHtml = (value) => String(value ?? '')
@@ -78,6 +87,7 @@ const targetClientEmail = (req) => {
 const rateLimit = ({ windowMs, max }) => {
   const hits = new Map();
   return (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') return next();
     const now = Date.now();
     const key = req.ip;
     const recent = (hits.get(key) || []).filter((t) => now - t < windowMs);
@@ -96,15 +106,7 @@ const publicFormLimiter = rateLimit({ windowMs: 10 * 60 * 1000, max: 8 });
 // ========================================================
 // 1. DATABASE CONNECTION
 // ========================================================
-mongoose.connect(MONGODB_URI)
-  .then(() => {
-    console.log('✅ Successfully connected to MongoDB Cluster.');
-  })
-  .catch(err => {
-    console.error('❌ MongoDB Connection Error:', err.message);
-    console.log('Ensure the connection string in backend/.env is accurate and your current IP is whitelisted on MongoDB Atlas.');
-    console.log('Connection URI format: mongodb+srv://username:password@cluster.mongodb.net/database?appName=YourApp');
-  });
+// Connection happens in start() at the bottom of this file, so tests can import the app.
 
 // ========================================================
 // 2. FIREBASE ADMIN INITIALIZATION & AUTH MIDDLEWARE
@@ -224,12 +226,11 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
   if (!googleAuthClient && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
     try {
       const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-      googleAuthClient = new google.auth.JWT(
-        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        null,
-        privateKey,
-        ['https://www.googleapis.com/auth/calendar']
-      );
+      googleAuthClient = new google.auth.JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: privateKey,
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+      });
       console.log(`✅ Using service account JWT from environment variables (${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL})`);
     } catch (err) {
       console.error('❌ Error initializing Google Calendar API JWT from environment variables:', err.message);
@@ -323,82 +324,56 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 };
 
 // ========================================================
-// 4. NODEMAILER EMAIL DISPATCH SERVICE
+// 4. CONSULTATION CONFIRMATION EMAIL
 // ========================================================
-const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString, meetLink) => {
-  const clientName = escapeHtml(rawClientName);
+const sendBookingEmail = async (booking) => {
   const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
-
-  const dateFormatted = new Date(dateTimeString).toLocaleString('en-ZA', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Africa/Johannesburg'
+  const name = escapeHtml(booking.name);
+  const when = booking.startsAt.toLocaleString('en-ZA', {
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
+    timeZone: 'Africa/Johannesburg',
+  });
+  const how = booking.meetLink
+    ? `<p style="margin:0;">Join on Google Meet: <a href="${escapeHtml(booking.meetLink)}">${escapeHtml(booking.meetLink)}</a></p>`
+    : `<p style="margin:0;">We'll ${booking.phone ? `phone you on ${escapeHtml(booking.phone)}` : 'email you a video-call link'} at this time.</p>`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #15233F;">
+      <h2 style="color: #0066FF; margin-bottom: 4px;">SaxsProjects</h2>
+      <p style="color:#555; margin-top:0;">Free 15-minute consultation</p>
+      <p>Hi ${name},</p>
+      <p>Your consultation is booked for <strong>${escapeHtml(when)} (SAST)</strong>.</p>
+      ${how}
+      <p>The calendar invite is attached. Need to change the time? Just reply to this email or WhatsApp us on +27 61 399 1212.</p>
+      <p style="color:#888; font-size:12px; margin-top:24px;">SaxsProjects · ${escapeHtml(PUBLIC_EMAIL)} · 071 413 5824 / 061 399 1212</p>
+    </div>`;
+  const ics = buildIcs({
+    uid: `booking-${booking._id}@saxsprojects.co.za`,
+    startsAt: booking.startsAt,
+    endsAt: booking.endsAt,
+    summary: 'SaxsProjects free 15-minute consultation',
+    description: `Consultation with ${booking.name}.${booking.meetLink ? ` Google Meet: ${booking.meetLink}` : ''}${booking.phone ? ` Phone: ${booking.phone}` : ''}`,
+    location: booking.meetLink || (booking.phone ? `Phone: ${booking.phone}` : 'Online'),
+    organizerEmail: process.env.SMTP_FROM || process.env.SMTP_USER || PUBLIC_EMAIL,
+    organizerName: 'SaxsProjects',
+    attendeeEmail: booking.email,
   });
 
-  const emailHtml = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #070e17; color: #ffffff; padding: 30px; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #1e3a5f;">
-      <div style="text-align: center; border-bottom: 1px solid #1e3a5f; padding-bottom: 20px; margin-bottom: 25px;">
-        <h2 style="color: #0066ff; margin: 0; font-size: 24px; letter-spacing: 1px;">SaxsProjects</h2>
-        <p style="color: #8da2bb; font-size: 12px; margin: 5px 0 0 0; text-transform: uppercase;">Consultation Scheduled</p>
-      </div>
-      
-      <p style="font-size: 15px; line-height: 1.6; color: #dbe4ef;">Hi ${clientName},</p>
-      
-      <p style="font-size: 15px; line-height: 1.6; color: #dbe4ef;">Your 15-minute technical scope consultation call has been successfully booked with <strong>SaxsProjects</strong>.</p>
-      
-      <div style="background: rgba(0, 102, 255, 0.04); border: 1px solid #0066ff; padding: 20px; border-radius: 8px; margin: 25px 0;">
-        <p style="margin: 0 0 10px 0; font-size: 13px; color: #8da2bb; text-transform: uppercase; font-weight: bold;">Date & Time (SAST):</p>
-        <p style="margin: 0 0 20px 0; font-size: 16px; color: #ffffff; font-weight: 600;">${dateFormatted}</p>
-        
-        <p style="margin: 0 0 10px 0; font-size: 13px; color: #8da2bb; text-transform: uppercase; font-weight: bold;">Google Meet Link:</p>
-        <p style="margin: 0;"><a href="${meetLink}" target="_blank" style="color: #00ff66; text-decoration: none; font-size: 16px; font-weight: bold; border-bottom: 1px dashed #00ff66;">Join Google Meet Session</a></p>
-      </div>
-      
-      <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">Please ensure you are logged into your Google account and have verified your microphone / video setup before the meeting starts.</p>
-      
-      <div style="border-top: 1px solid #1e3a5f; padding-top: 20px; margin-top: 30px; text-align: center; font-size: 12px; color: #8da2bb;">
-        <p style="margin: 0 0 5px 0;">SaxsProjects • ${escapeHtml(PUBLIC_EMAIL)}</p>
-        <p style="margin: 0;">Call: 071 413 5824 / 061 399 1212 • WhatsApp: +27 61 399 1212</p>
-      </div>
-    </div>
-  `;
-
   if (smtpConfigured()) {
-    try {
-      const info = await sendMail({
-        to: clientEmail,
-        bcc: ownerEmail, // so the booking also lands in your inbox
-        subject: 'Confirmed: SaxsProjects 15-Min Consultation Call',
-        html: emailHtml
-      });
-
-      console.log('Email sent successfully:', info.messageId);
-      return;
-    } catch (error) {
-      console.error('Nodemailer SMTP dispatch error:', error);
-      throw new Error('Failed to send confirmation email', { cause: error });
-    }
+    await sendMail({
+      to: booking.email,
+      bcc: ownerEmail, // so the booking also lands in your inbox
+      replyTo: ownerEmail,
+      subject: `Booked: SaxsProjects consultation on ${booking.date} at ${booking.time} (SAST)`,
+      html,
+      icalEvent: { method: 'REQUEST', filename: 'consultation.ics', content: ics },
+    });
+    return;
   }
 
   if (IS_PRODUCTION) {
-    throw new Error('SMTP is not configured; cannot send confirmation email');
+    throw new Error('SMTP is not configured; cannot send booking confirmation');
   }
-
-  // Fallback: print HTML template neatly to terminal logs for verification
-  console.log('\n========================================================');
-  console.log('✉️  EMAIL DISPATCH (MOCK LOGGING):');
-  console.log(`To: ${clientEmail}`);
-  console.log(`BCC: ${ownerEmail}`);
-  console.log(`Subject: Confirmed: SaxsProjects 15-Min Consultation Call`);
-  console.log('-------------------- CONTENT ---------------------------');
-  console.log(`Meeting Date: ${dateFormatted}`);
-  console.log(`Google Meet Link: ${meetLink}`);
-  console.log('SMTP keys missing in .env. Setup SMTP details to send real emails.');
-  console.log('========================================================\n');
+  console.log(`✉️  [dev] Booking confirmation for ${booking.email} on ${booking.date} ${booking.time} (SMTP not configured; not sent)`);
 };
 
 // ========================================================
@@ -406,60 +381,22 @@ const sendConfirmationEmail = async (clientEmail, rawClientName, dateTimeString,
 // ========================================================
 const runAIEngine = async (question) => {
   const apiKey = process.env.GEMINI_API_KEY;
-  const systemPrompt = `You are the SaxsProjects AI Assistant - EXCLUSIVELY answering questions about SaxsProjects services and offerings only.
-  
-IMPORTANT CONSTRAINT: You ONLY answer questions about SaxsProjects and our digital services. You refuse to answer any questions not related to SaxsProjects, web development services, or our company offerings. For off-topic questions, politely redirect to SaxsProjects services.
+  const systemPrompt = `You are the SaxsProjects assistant. Only answer questions about SaxsProjects and its services; politely redirect anything else.
 
-Company Information:
-- SaxsProjects: Premium digital architecture and custom software solutions
-- Founded by qualified software developer with focus on high-quality, fast delivery
-- Technologies: React, Vite, Node.js, MongoDB, Firebase, Google APIs
-- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, info@saxsprojects.co.za
-
-Services & Pricing (ZAR - South African Rand):
-WEBSITES:
-- Standard Website (No Database): R2,800 (Deposit R1,400, 10 days)
-- Standard Website (With Database): R3,400 (Deposit R1,700, 14 days)
-- Top Tier Website (No Database): R3,800 (Deposit R1,900, 16 days)
-- Top Tier Website (With Database): R4,400 (Deposit R2,200, 20 days)
-
-WEB APPLICATIONS:
-- Small Data Scale: R5,000 (Deposit R2,500, 21 days)
-- Big Data Scale: R5,500 (Deposit R2,750, 28 days)
-
-MOBILE APPS (Cross-platform iOS + Android):
-- Mobile App (No Cloud Database): R6,000 (Deposit R3,000, 21 days)
-- Mobile App (With Cloud Database): R8,600 (Deposit R4,300, 30 days)
-
-FEATURES INCLUDED:
-- Full responsive design
-- SEO optimization
-- User authentication
-- Admin dashboard
-- Real-time notifications (Firebase)
-- Data management (MongoDB)
-- 30-day post-launch support
-- Google Meet consultation (15-min free initial call)
-
-BOOKING & CONTACT:
-- Free 15-minute technical consultation: Book via Contact page (Mon-Sat, 09:30-16:30 SAST)
-- Email: info@saxsprojects.co.za
-- WhatsApp: https://wa.me/27613991212
-- Direct Call: 0714135824 (Primary) / 0613991212 (Support)
-
-Response Guidelines:
-- Keep answers SHORT and direct (1-2 sentences maximum)
-- Always include pricing in ZAR
-- Suggest booking a consultation for complex questions
-- Mention relevant features for queries
-- Redirect non-SaxsProjects questions politely but firmly
-- Be professional, friendly, and enthusiastic about our services`;
+Facts (do not invent anything beyond these):
+- SaxsProjects is a South African software studio in Thohoyandou, Limpopo, serving clients across South Africa remotely.
+- Services: business websites, custom web applications, Android/iOS apps, database design, computer and laptop repairs and software updates, and learning support (tutoring and coding mentorship) for students.
+- Pricing: we don't publish prices. Every client gets a free, fixed written quotation after a short chat about what they need. Payment is a 50% deposit to start and 50% before launch.
+- Free 15-minute consultation: book on the website's Contact page, Monday to Friday, 09:30-16:30 SAST.
+- Contact: ${PUBLIC_EMAIL}, phone 071 413 5824, WhatsApp +27 61 399 1212.
+- We reply within one business day.
+Never quote a price, promise a deadline, or agree to terms; say the written quotation will confirm those.`;
 
   if (apiKey) {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
         systemInstruction: systemPrompt
       });
       const result = await model.generateContent(question);
@@ -469,43 +406,31 @@ Response Guidelines:
     }
   }
 
-  // Smart local NLP matching engine fallback (SaxsProjects-only)
-  const cleanInput = question.toLowerCase();
-  
-  // Check if question is about SaxsProjects services
-  const isSaxsQuestion = cleanInput.match(/saxs|website|web app|mobile|app|price|cost|timeline|booking|consultation|feature|database|react|node|firebase|mongodb/);
-  
-  if (!isSaxsQuestion) {
-    return "I'm the SaxsProjects AI Assistant, and I only answer questions about SaxsProjects services, web development, and our digital solutions. Ask me about our websites, web apps, mobile apps, pricing, or booking a consultation!";
+  // Simple keyword fallback (no AI key configured, or the AI call failed)
+  const q = String(question || '').toLowerCase();
+  if (/(cost|price|pricing|rate|fee|zar|rand|how much|quote)/.test(q)) {
+    return `Every project is different, so we give each client a free, fixed written quotation. Tell us what you need on the Contact page, by WhatsApp (+27 61 399 1212) or at ${PUBLIC_EMAIL}, and we'll reply within one business day.`;
   }
-
-  if (cleanInput.includes("cost") || cleanInput.includes("price") || cleanInput.includes("pricing") || cleanInput.includes("rate") || cleanInput.includes("fee") || cleanInput.includes("zar") || cleanInput.includes("rand")) {
-    return "💰 SaxsProjects Pricing: Websites R2,800-R4,400 ZAR, Web Apps R5,000-R5,500 ZAR, Mobile Apps R6,000-R8,600 ZAR. All include 50% deposit upfront, 50% on completion. Use our Pricing Calculator or book a free consultation!";
-  } else if (cleanInput.includes("website") || cleanInput.includes("site")) {
-    return "🌐 We build premium websites starting at R2,800 ZAR (Standard, no DB) to R4,400 ZAR (Top Tier with DB). All include SEO optimization, responsive design, admin control, and 30-day support. 10-20 day timeline.";
-  } else if (cleanInput.includes("web app") || cleanInput.includes("webapp") || cleanInput.includes("portal") || cleanInput.includes("dashboard")) {
-    return "📊 Custom Web Applications: R5,000-R5,500 ZAR. Build interactive dashboards, client portals, booking systems, and inventory trackers with live data sync. 21-28 day delivery.";
-  } else if (cleanInput.includes("mobile") || cleanInput.includes("iphone") || cleanInput.includes("android")) {
-    return "📱 Cross-platform Mobile Apps (iOS + Android): R6,000 (no DB) or R8,600 (with Cloud DB). Full app store ready with real-time notifications and user authentication. 21-30 day timeline.";
-  } else if (cleanInput.includes("timeline") || cleanInput.includes("duration") || cleanInput.includes("days") || cleanInput.includes("fast")) {
-    return "⚡ SaxsProjects delivers fast: Websites in 10-20 days, Web Apps in 21-28 days, Mobile Apps in 21-30 days. Timeline depends on project scope. Book a consultation to discuss your timeline!";
-  } else if (cleanInput.includes("database") || cleanInput.includes("db") || cleanInput.includes("mongodb") || cleanInput.includes("firebase")) {
-    return "🔄 We use Firebase (real-time notifications) + MongoDB (structured data). Database options add R600 ZAR to website/mobile projects. Hybrid architecture ensures speed and scalability.";
-  } else if (cleanInput.includes("consult") || cleanInput.includes("booking") || cleanInput.includes("call") || cleanInput.includes("meeting")) {
-    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email info@saxsprojects.co.za, or WhatsApp +27 613 991 212. Let's discuss your project!";
-  } else if (cleanInput.includes("hello") || cleanInput.includes("hi") || cleanInput.includes("hey") || cleanInput.includes("sup")) {
-    return "👋 Hi! I'm the SaxsProjects AI Assistant. I help with questions about our websites, web apps, mobile apps, pricing, and booking consultations. What can I help you build today?";
-  } else {
-    return "🚀 I'm the SaxsProjects Assistant - ask me about websites (R2,800+), web apps (R5,000+), mobile apps (R6,000+), features, timelines, or book your free 15-min consultation!";
+  if (/(consult|book|call|meeting|appointment)/.test(q)) {
+    return 'You can book a free 15-minute consultation on our Contact page, Monday to Friday, 09:30-16:30 (SAST). You will get a calendar invite by email.';
   }
+  if (/(website|web app|mobile|app|database|repair|laptop|tutor|mentor|learning)/.test(q)) {
+    return 'We build business websites, web apps and mobile apps, design databases, repair and update computers, and offer tutoring and coding mentorship. Tell us a little about what you need and we will send you a written quotation.';
+  }
+  if (/^(hi|hello|hey|good (morning|afternoon|evening))\b/.test(q)) {
+    return 'Hi! Thanks for getting in touch with SaxsProjects. How can we help you today?';
+  }
+  return `Thanks for your message. A member of the SaxsProjects team will reply within one business day. For anything urgent, WhatsApp us on +27 61 399 1212.`;
 };
 
 // ========================================================
 // 6. FIRESTORE REAL-TIME BACKGROUND LISTENER
 // ========================================================
-if (firebaseAdminActive) {
+// Off by default: automatic replies to clients must be switched on deliberately
+// (CHAT_AUTOREPLY_ENABLED=true) and their wording checked first.
+if (firebaseAdminActive && process.env.CHAT_AUTOREPLY_ENABLED === 'true' && process.env.NODE_ENV !== 'test') {
   try {
-    console.log('Boothing Firestore Real-time Background Listener for Chat Autoresponses...');
+    console.log('Starting Firestore chat auto-reply listener...');
 
     db.collection('chats').onSnapshot(snapshot => {
       snapshot.docChanges().forEach(async change => {
@@ -541,7 +466,7 @@ if (firebaseAdminActive) {
                   sender: docId.startsWith('public_') ? 'support' : 'dev',
                   text: replyText,
                   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                  timestamp: FieldValue.serverTimestamp(),
                   isProcessed: true
                 });
                 console.log(`Dispatched AI autoresponse to ${docId} successfully.`);
@@ -716,7 +641,7 @@ app.post('/api/projects', authMiddleware, adminOnly, async (req, res) => {
         tier: tier || 'Standard Tier',
         progress: progress || 0,
         status: status || 'Initiated',
-        cost: cost || 'R2,800 ZAR',
+        cost: cost || 'To be quoted',
         timeline: timeline || '10 Days',
         milestones: milestones || []
       });
@@ -812,112 +737,96 @@ app.delete('/api/billing/:id', authMiddleware, adminOnly, async (req, res) => {
   }
 });
 
-// D. Consultation Scheduling Endpoint (Google Meet + Emails)
+// D. Consultation booking
+// Books a free 15-minute call: validates the slot, saves it (a database index
+// prevents double-booking), adds a Google Meet link when Google Calendar is
+// configured, and emails a confirmation with a calendar invite.
+const googleCalendarConfigured = () =>
+  Boolean(process.env.FIREBASE_SERVICE_ACCOUNT || process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
+    (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY)) &&
+  process.env.GOOGLE_MEET_ENABLED === 'true';
+
 app.post('/api/schedule', publicFormLimiter, async (req, res) => {
-  const { email, name, dateTimeString } = req.body;
+  const { email, name, phone, dateTimeString, website } = req.body || {};
+  if (website) return res.status(200).json({ success: true });
 
-  if (!email || !dateTimeString) {
-    return res.status(400).json({ error: 'Recipient Email and Date-Time String are required.' });
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email))) {
+    return res.status(400).json({ error: 'A valid email address is required for the calendar invite.' });
   }
-
-  const requestedStart = new Date(dateTimeString);
-  if (Number.isNaN(requestedStart.getTime()) || requestedStart.getTime() < Date.now()) {
-    return res.status(400).json({ error: 'Please choose a valid time in the future.' });
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ error: 'Your name is required.' });
   }
+  const slot = parseSlot(dateTimeString);
+  if (slot.error) return res.status(400).json({ error: slot.error });
 
+  let booking;
   try {
-    console.log(`Scheduling consultation request received for ${email} on ${dateTimeString}`);
-
-    // 1. Generate Google Meet video channel (real link, will throw error if it fails)
-    let meetLink;
-    try {
-      meetLink = await generateGoogleMeetLink(dateTimeString, email);
-      console.log('✅ Successfully generated real Google Meet link for consultation');
-    } catch (meetErr) {
-      console.error('❌ Failed to generate real Google Meet link:', meetErr.message);
-      return res.status(500).json({ 
-        error: 'Failed to generate Google Meet link. Please ensure Google Calendar API is properly configured.',
-        details: meetErr.message
-      });
-    }
-
-    // 2. Dispatch beautifully styled confirmation email
-    try {
-      await sendConfirmationEmail(email.toLowerCase(), name || 'SaxsProjects Partner', dateTimeString, meetLink);
-      console.log('✅ Confirmation email sent successfully with real Meet link');
-    } catch (emailErr) {
-      console.error('❌ Failed to send confirmation email:', emailErr.message);
-      return res.status(500).json({ 
-        error: 'Consultation scheduled but failed to send confirmation email.',
-        meetLink: meetLink
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      dateTimeString,
-      meetLink,
-      message: 'Consultation calendar event created and confirmation email sent with real Google Meet link.'
+    booking = await Booking.create({
+      startsAt: slot.startsAt,
+      endsAt: slot.endsAt,
+      date: slot.date,
+      time: slot.time,
+      email: String(email).toLowerCase(),
+      name: String(name).trim().slice(0, 200),
+      phone: phone ? String(phone).trim().slice(0, 40) : undefined,
     });
   } catch (error) {
-    console.error('Error during scheduling routine:', error);
-    res.status(500).json({ error: 'Failed to process consultation scheduling.' });
+    if (error && error.code === 11000) {
+      return res.status(409).json({ error: 'Sorry, that time has just been booked. Please choose another slot.' });
+    }
+    console.error('Error saving booking:', error);
+    return res.status(500).json({ error: 'Could not save the booking.' });
   }
+
+  if (googleCalendarConfigured()) {
+    try {
+      const link = await generateGoogleMeetLink(slot.startsAt.toISOString(), booking.email);
+      if (typeof link === 'string' && link.startsWith('https://meet.google.com/')) {
+        booking.meetLink = link;
+        await booking.save();
+      }
+    } catch (meetErr) {
+      console.error('Google Meet link not created (continuing without it):', meetErr.message);
+    }
+  }
+
+  try {
+    await sendBookingEmail(booking);
+  } catch (emailErr) {
+    // Don't hold a slot the client was never told about: release it and let the
+    // website fall back to a WhatsApp/email request.
+    console.error('Booking confirmation email failed:', emailErr.message);
+    await Booking.deleteOne({ _id: booking._id });
+    return res.status(502).json({ error: 'We could not send your confirmation email. Please request the call by WhatsApp or email.' });
+  }
+
+  res.status(201).json({
+    success: true,
+    bookingId: booking._id,
+    date: booking.date,
+    time: booking.time,
+    meetLink: booking.meetLink || null,
+    message: 'Consultation booked. A confirmation with a calendar invite has been emailed.',
+  });
 });
 
-// ========================================================
-// CONSULTATION AVAILABILITY ENDPOINT - Get Booked Slots
-// ========================================================
+// Times already taken on a day (YYYY-MM-DD), so the website can grey them out.
 app.get('/api/schedule/booked-slots', async (req, res) => {
+  const { date } = req.query;
+  if (!isIsoDate(date)) {
+    return res.status(400).json({ error: 'date must be YYYY-MM-DD' });
+  }
   try {
-    const { date } = req.query; // Expected format: "2026-05-25" or "2026 May 25"
-    
-    if (!date) {
-      return res.status(400).json({ error: 'Date parameter required (format: YYYY-MM-DD or YYYY Month DD)' });
-    }
-
-    // Find all scheduling records for the requested date
-    // Using Firestore or a database model for consultation bookings
-    // For now, return empty array as placeholder (database integration would follow)
-    const bookedSlots = []; // This would be populated from actual booking records
-    
-    console.log(`📅 Booked slots requested for date: ${date}`);
-    
-    res.status(200).json({
-      date,
-      bookedSlots, // Array of booked times like ["09:30", "10:30", "14:00"]
-      availableSlots: generateAvailableSlots(bookedSlots),
-      message: 'Consultation availability data retrieved.'
-    });
+    const bookings = await Booking.find({ date, status: 'confirmed' }, { time: 1, _id: 0 }).lean();
+    const bookedSlots = bookings.map((b) => b.time).sort();
+    res.status(200).json({ date, bookedSlots, availableSlots: CONSULT_SLOTS.filter((t) => !bookedSlots.includes(t)) });
   } catch (error) {
     console.error('Error retrieving booked slots:', error);
     res.status(500).json({ error: 'Failed to retrieve booked slots.' });
   }
 });
 
-// Helper function to generate available time slots
-const generateAvailableSlots = (bookedSlots = []) => {
-  const times = [];
-  const startHour = 9; // 09:30
-  const startMinutes = 30;
-  const endHour = 16; // 16:30
-  
-  for (let hour = startHour; hour <= endHour; hour++) {
-    for (let minutes = 0; minutes < 60; minutes += 60) {
-      if (hour === startHour && minutes < startMinutes) continue;
-      if (hour > endHour) break;
-      if (hour === endHour && minutes > 30) break;
-      
-      const timeStr = `${hour.toString().padStart(2, '0')}:${minutes === 0 ? '30' : '00'}`;
-      if (!bookedSlots.includes(timeStr)) {
-        times.push(timeStr);
-      }
-    }
-  }
-  
-  return times;
-};
-
+// ========================================================
 // D.1. Inquiry Submission Endpoint (with Email Validation and Auto-Reply)
 const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBizName, rawDetails, rawQuote, extras = {}) => {
   const clientEmail = escapeHtml(rawClientEmail);
@@ -1078,6 +987,10 @@ app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Project details are required.' });
   }
 
+  if (String(details).length > 5000 || String(name).length > 200) {
+    return res.status(400).json({ error: 'Please keep your name under 200 and details under 5000 characters.' });
+  }
+
   try {
     // Save inquiry to database
     let client = await Client.findOne({ email: email.toLowerCase() });
@@ -1100,13 +1013,35 @@ app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
     if (consent) client.consentAt = new Date();
     await client.save();
 
+    // Keep every enquiry, even from returning clients.
+    const inquiry = await Inquiry.create({
+      email: email.toLowerCase(),
+      name: String(name).trim().slice(0, 200),
+      phone: phone ? String(phone).slice(0, 40) : undefined,
+      businessName: bizName ? String(bizName).slice(0, 200) : undefined,
+      service: service ? String(service).slice(0, 120) : undefined,
+      details: String(details).slice(0, 5000),
+      quote: activeQuote || undefined,
+      consentAt: consent ? new Date() : undefined,
+    });
+
     // Send emails (inquiry recipient notification + auto-reply to client)
     const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL || PUBLIC_EMAIL;
-    await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
+    try {
+      await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
+    } catch (emailErr) {
+      // The enquiry is saved (visible in /api/admin/inquiries), but tell the visitor to use
+      // another channel rather than wait for a reply that may not come.
+      console.error('Inquiry email failed (inquiry saved):', emailErr.message);
+      return res.status(502).json({ error: 'Your enquiry was saved but our email system is down. Please also WhatsApp or email us.', inquiryId: inquiry._id });
+    }
+    inquiry.emailDelivered = true;
+    await inquiry.save();
 
     res.status(200).json({
       success: true,
       message: 'Inquiry submitted successfully. Confirmation email sent.',
+      inquiryId: inquiry._id,
       clientId: client._id,
       isNewClient
     });
@@ -1292,136 +1227,54 @@ app.delete('/api/admin/clients/:email', authMiddleware, adminOnly, async (req, r
 });
 
 // ========================================================
-// 8.5. GOOGLE OAUTH 2.0 AUTHENTICATION
+// 8.5. ADMIN: ENQUIRIES AND BOOKINGS
 // ========================================================
-// Exchange authorization code for tokens
-app.post('/api/auth/google', async (req, res) => {
-  const { code } = req.body;
+const INQUIRY_STATUSES = ['new', 'contacted', 'quoted', 'won', 'lost', 'spam'];
+const BOOKING_STATUSES = ['confirmed', 'cancelled', 'completed', 'no_show'];
 
-  if (!code) {
-    return res.status(400).json({ error: 'Authorization code is required' });
-  }
-
+app.get('/api/admin/inquiries', authMiddleware, adminOnly, async (req, res) => {
+  const filter = INQUIRY_STATUSES.includes(req.query.status) ? { status: req.query.status } : {};
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 500);
   try {
-    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: req.headers['x-redirect-uri'] || `${FRONTEND_URL}/callback`,
-      grant_type: 'authorization_code'
-    });
-
-    const { access_token, id_token, refresh_token } = tokenResponse.data;
-
-    // Get user info from Google
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
-
-    const { email, name, picture, id: googleId } = userInfoResponse.data;
-
-    // Create or update client in database
-    let client = await Client.findOne({ email: email.toLowerCase() });
-    
-    if (!client) {
-      client = new Client({
-        name,
-        email: email.toLowerCase(),
-        phone: '',
-        googleId,
-        profilePicture: picture,
-        createdAt: new Date()
-      });
-      await client.save();
-    } else {
-      // Update existing client with Google info
-      client.googleId = googleId;
-      client.profilePicture = picture;
-      await client.save();
-    }
-
-    // Prepare response
-    res.status(200).json({
-      success: true,
-      user: {
-        id: client._id,
-        email: client.email,
-        name: client.name,
-        picture: client.profilePicture,
-        googleId
-      },
-      tokens: {
-        access_token,
-        id_token,
-        refresh_token
-      }
-    });
+    res.status(200).json(await Inquiry.find(filter).sort({ createdAt: -1 }).limit(limit).lean());
   } catch (error) {
-    console.error('Google OAuth Error:', error.response?.data || error.message);
-    res.status(401).json({ 
-      error: 'Authentication failed',
-      details: error.response?.data || error.message
-    });
+    console.error('Error listing inquiries:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 
-// Google OAuth callback handler (handles redirect from Google)
-app.get('/api/auth/google/callback', async (req, res) => {
-  const { code, error } = req.query;
-
-  if (error) {
-    return res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent(error)}`);
+app.patch('/api/admin/inquiries/:id', authMiddleware, adminOnly, async (req, res) => {
+  const { status } = req.body || {};
+  if (!INQUIRY_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `status must be one of ${INQUIRY_STATUSES.join(', ')}` });
   }
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Inquiry not found.' });
+  const inquiry = await Inquiry.findByIdAndUpdate(req.params.id, { status }, { new: true });
+  if (!inquiry) return res.status(404).json({ error: 'Inquiry not found.' });
+  res.status(200).json(inquiry);
+});
 
-  if (!code) {
-    return res.redirect(`${FRONTEND_URL}/dashboard?error=No+authorization+code+received`);
-  }
-
+app.get('/api/admin/bookings', authMiddleware, adminOnly, async (req, res) => {
+  const filter = {};
+  if (BOOKING_STATUSES.includes(req.query.status)) filter.status = req.query.status;
+  if (req.query.upcoming === 'true') filter.startsAt = { $gte: new Date() };
   try {
-    // Import and use the getTokens function from googleAuth
-    const { getTokens } = await import('./googleAuth.js');
-    const tokens = await getTokens(code);
-
-    // Get user info from Google
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
-    });
-
-    const { email, name, picture, id: googleId } = userInfoResponse.data;
-
-    // Create or update client in database
-    let client = await Client.findOne({ email: email.toLowerCase() });
-    
-    if (!client) {
-      client = new Client({
-        name,
-        email: email.toLowerCase(),
-        phone: '',
-        googleId,
-        profilePicture: picture,
-        createdAt: new Date()
-      });
-      await client.save();
-    } else {
-      client.googleId = googleId;
-      client.profilePicture = picture;
-      await client.save();
-    }
-
-    // Redirect to frontend with tokens as query params
-    const frontendUrl = `${FRONTEND_URL}/callback?` + new URLSearchParams({
-      access_token: tokens.access_token,
-      id_token: tokens.id_token,
-      refresh_token: tokens.refresh_token || '',
-      email: client.email,
-      name: client.name
-    }).toString();
-
-    res.redirect(frontendUrl);
+    res.status(200).json(await Booking.find(filter).sort({ startsAt: 1 }).limit(500).lean());
   } catch (error) {
-    console.error('Google OAuth Callback Error:', error);
-    res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent('Authentication failed')}`);
+    console.error('Error listing bookings:', error);
+    res.status(500).json({ error: 'Internal server error.' });
   }
+});
+
+app.patch('/api/admin/bookings/:id', authMiddleware, adminOnly, async (req, res) => {
+  const { status } = req.body || {};
+  if (!BOOKING_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `status must be one of ${BOOKING_STATUSES.join(', ')}` });
+  }
+  if (!mongoose.isValidObjectId(req.params.id)) return res.status(404).json({ error: 'Booking not found.' });
+  const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true });
+  if (!booking) return res.status(404).json({ error: 'Booking not found.' });
+  res.status(200).json(booking);
 });
 
 // ========================================================
@@ -1560,13 +1413,56 @@ app.get('/api/admin/blogs', authMiddleware, adminOnly, async (req, res) => {
 });
 
 // ========================================================
-// 9. SERVER BOOTSTRAP
+// 9. ERRORS, BOOTSTRAP AND SHUTDOWN
 // ========================================================
-console.log("Visit this URL to authorize:", getAuthUrl());
-
-app.listen(PORT, () => {
-  console.log(`=========================================================`);
-  console.log(`🚀 SaxsProjects Integrated Backend running on port ${PORT}`);
-  console.log(`   Local Address: http://localhost:${PORT}`);
-  console.log(`=========================================================`);
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: 'Not found.' });
 });
+
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  if (err && err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON body.' });
+  }
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request is too large.' });
+  }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error.' });
+});
+
+export { app };
+
+export async function start() {
+  if (!MONGODB_URI) {
+    console.error('❌ MONGODB_URI is not set. The API cannot store enquiries or bookings.');
+    if (IS_PRODUCTION) process.exit(1);
+  } else {
+    try {
+      await mongoose.connect(MONGODB_URI);
+      await Promise.all([Booking.syncIndexes(), Inquiry.syncIndexes()]);
+      console.log('✅ Connected to MongoDB.');
+    } catch (err) {
+      console.error('❌ MongoDB connection error:', err.message);
+      if (IS_PRODUCTION) process.exit(1);
+    }
+  }
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 SaxsProjects backend listening on port ${PORT}`);
+  });
+  const shutdown = (signal) => {
+    console.log(`${signal} received, shutting down...`);
+    server.close(async () => {
+      await mongoose.disconnect().catch(() => {});
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(1), 10_000).unref();
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  return server;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  start();
+}

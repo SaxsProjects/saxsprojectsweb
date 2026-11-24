@@ -20,12 +20,12 @@ services:
         value: production
       - key: NODE_VERSION
         value: "22"
-      - key: FRONTEND_URL
-        value: https://www.saxsprojects.co.za
       - key: CORS_ORIGINS
         value: https://www.saxsprojects.co.za,https://saxsprojects.co.za
       - key: ADMIN_EMAIL
         sync: false
+      - key: PUBLIC_EMAIL
+        value: info@saxsprojects.co.za
       # Firebase user ID of the admin account (Authentication > Users). Preferred over ADMIN_EMAIL.
       - key: ADMIN_UID
         sync: false

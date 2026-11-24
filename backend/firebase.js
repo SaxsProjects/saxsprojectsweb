@@ -1,5 +1,6 @@
-import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { cert, getApp, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -28,64 +29,30 @@ export function loadServiceAccount() {
 
 let firebaseAdminActive = false;
 
-if (!admin.apps.length) {
+if (getApps().length === 0) {
   try {
     const serviceAccount = loadServiceAccount();
     if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      initializeApp({
+        credential: cert(serviceAccount),
         databaseURL: "https://saxsprojects-6a7eb.firebaseio.com"
       });
       firebaseAdminActive = true;
-      console.log('Firebase Admin SDK initialized successfully in firebase.js');
+      console.log('Firebase Admin SDK initialized.');
     } else {
       console.log('⚠️ Firebase service account not found (set FIREBASE_SERVICE_ACCOUNT or add firebase-admin-config.json). Authenticated routes will be refused in production.');
     }
   } catch (error) {
-    console.error('Error loading Firebase service account in firebase.js:', error.message);
+    console.error('Error loading Firebase service account:', error.message);
   }
 } else {
   firebaseAdminActive = true;
 }
 
-// Export the auth and firestore service instances and admin references
-export const auth = firebaseAdminActive ? admin.auth() : null;
-export const db = firebaseAdminActive ? getFirestore(admin.app(), 'saxsprojects') : null;
-export { admin, firebaseAdminActive };
-
-/**
- * Verifies the Firebase ID token and returns the UID
- * @param {string} token - The Firebase ID token from the client
- * @returns {Promise<string>} - The decoded user's UID
- */
-export async function verifyUserToken(token) {
-  if (!firebaseAdminActive || !auth) {
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
-        const payload = JSON.parse(payloadJson);
-        const uid = payload.user_id || payload.sub;
-        if (!uid) throw new Error('No UID in payload');
-        return uid;
-      } else if (token.includes('@')) {
-        return token;
-      } else {
-        throw new Error('Invalid token');
-      }
-    } catch (e) {
-      throw new Error('Invalid token', { cause: e });
-    }
-  }
-
-  try {
-    const decodedToken = await auth.verifyIdToken(token);
-    return decodedToken.uid; // This UID links to the client
-  } catch (error) {
-    throw new Error('Invalid token', { cause: error });
-  }
-}
+// Auth and Firestore are only available when a service account is configured.
+export const auth = firebaseAdminActive ? getAuth(getApp()) : null;
+export const db = firebaseAdminActive ? getFirestore(getApp(), 'saxsprojects') : null;
+export { FieldValue, firebaseAdminActive };
 
 /**
  * Saves a chat message to Firestore
