@@ -5,8 +5,9 @@ import {
 } from 'lucide-react';
 import { auth } from '../../firebase-config';
 import { API_BASE_URL } from '../lib/api';
+import { business } from '../config/business';
 
-const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
+const ADMIN_EMAIL = business.adminEmail;
 
 export default function AdminDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -151,7 +152,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     
     if (email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-      setError('Only admin users (saxs.solutions25@gmail.com) can access this dashboard');
+      setError(`Only the admin account (${ADMIN_EMAIL}) can access this dashboard`);
       return;
     }
 
@@ -170,7 +171,12 @@ export default function AdminDashboard() {
 
     try {
       const { signInWithEmailAndPassword } = await import('firebase/auth');
-      await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+      if (cred.user.uid !== business.adminUid) {
+        await auth.signOut();
+        setError('This account does not have admin access.');
+        return;
+      }
       setIsLoggedIn(true);
       setError('');
     } catch (err) {
@@ -478,7 +484,7 @@ export default function AdminDashboard() {
                 }}
                 required
               />
-              <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.3rem', margin: '0.3rem 0 0 0' }}>Must be saxs.solutions25@gmail.com</p>
+              <p style={{ fontSize: '0.7rem', color: '#999', marginTop: '0.3rem', margin: '0.3rem 0 0 0' }}>Must be {ADMIN_EMAIL}</p>
             </div>
 
             <div>

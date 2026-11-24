@@ -3,9 +3,9 @@ import { Lock, Send, CheckCircle2, MessageSquare, Clock, DollarSign, User, Plus,
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut, updatePassword } from 'firebase/auth';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase-config';
+import { business } from '../config/business';
 import { API_BASE_URL } from '../lib/api';
 
-const ADMIN_EMAIL = 'saxs.solutions25@gmail.com';
 
 export default function ClientDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -62,8 +62,8 @@ export default function ClientDashboard() {
         setEmail(user.email);
         setIsLoggedIn(true);
         
-        // Exclusively check if user is saxs.solutions25@gmail.com to activate admin view
-        const isUserAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        // Only the admin account (business.adminEmail) gets the admin view
+        const isUserAdmin = user.uid === business.adminUid;
         if (isUserAdmin) {
           setIsAdminView(true);
         } else {
@@ -704,8 +704,8 @@ export default function ClientDashboard() {
   return (
     <div className="dashboard-container fade-in container section-padding" style={{ position: 'relative' }}>
       
-      {/* Developer View Toggle Trigger (Exclusive for saxs.solutions25@gmail.com) */}
-      {email.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+      {/* Developer View Toggle Trigger (admin account only) */}
+      {auth.currentUser?.uid === business.adminUid && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
           <button 
             onClick={() => setIsAdminView(!isAdminView)}
