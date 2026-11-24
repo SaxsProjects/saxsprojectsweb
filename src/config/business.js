@@ -42,8 +42,7 @@ export const business = {
 
   // ---- Contact -------------------------------------------------------------
   contact: {
-    // Switch to a domain address (e.g. hello@saxsprojects.co.za) when ready.
-    email: 'saxs.solutions25@gmail.com',
+    email: 'info@saxsprojects.co.za',
     phones: [
       { label: 'Primary', display: '071 413 5824', e164: '+27714135824' },
       { label: 'Support & WhatsApp', display: '061 399 1212', e164: '+27613991212' },
@@ -74,7 +73,7 @@ export const business = {
   },
 
   social: {
-    github: 'https://github.com/saxs-14',
+    github: 'https://github.com/SaxsProjects',
     facebook: 'https://facebook.com/saxsprojects',
     linkedin: 'https://linkedin.com/in/saxsprojects',
   },

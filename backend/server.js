@@ -401,7 +401,7 @@ Company Information:
 - SaxsProjects: Premium digital architecture and custom software solutions
 - Founded by qualified software developer with focus on high-quality, fast delivery
 - Technologies: React, Vite, Node.js, MongoDB, Firebase, Google APIs
-- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, Saxs.solutions25@gmail.com
+- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, info@saxsprojects.co.za
 
 Services & Pricing (ZAR - South African Rand):
 WEBSITES:
@@ -430,7 +430,7 @@ FEATURES INCLUDED:
 
 BOOKING & CONTACT:
 - Free 15-minute technical consultation: Book via Contact page (Mon-Sat, 09:30-16:30 SAST)
-- Email: Saxs.solutions25@gmail.com
+- Email: info@saxsprojects.co.za
 - WhatsApp: https://wa.me/27613991212
 - Direct Call: 0714135824 (Primary) / 0613991212 (Support)
 
@@ -479,7 +479,7 @@ Response Guidelines:
   } else if (cleanInput.includes("database") || cleanInput.includes("db") || cleanInput.includes("mongodb") || cleanInput.includes("firebase")) {
     return "🔄 We use Firebase (real-time notifications) + MongoDB (structured data). Database options add R600 ZAR to website/mobile projects. Hybrid architecture ensures speed and scalability.";
   } else if (cleanInput.includes("consult") || cleanInput.includes("booking") || cleanInput.includes("call") || cleanInput.includes("meeting")) {
-    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email Saxs.solutions25@gmail.com, or WhatsApp +27 613 991 212. Let's discuss your project!";
+    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email info@saxsprojects.co.za, or WhatsApp +27 613 991 212. Let's discuss your project!";
   } else if (cleanInput.includes("hello") || cleanInput.includes("hi") || cleanInput.includes("hey") || cleanInput.includes("sup")) {
     return "👋 Hi! I'm the SaxsProjects AI Assistant. I help with questions about our websites, web apps, mobile apps, pricing, and booking consultations. What can I help you build today?";
   } else {

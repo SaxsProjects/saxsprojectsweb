@@ -29,7 +29,7 @@ Commit and push to `main`. When Vercel redeploys, the footer shows "© SaxsProje
 ## Before you take your first paying client
 
 - [ ] **Business bank account** in the company's name. Bank details go on invoices only, never on the website.
-- [ ] **Business email.** You use Zoho Mail: once your domain mailbox (for example `hello@saxsprojects.co.za`) is ready, put it in `contact.email`. Today the site uses `saxs.solutions25@gmail.com`, and this README's contact section uses `saxsprojects.dev@gmail.com`. Pick one.
+- [x] **Business email.** The site, README and chatbot now use `info@saxsprojects.co.za` (Zoho Mail). The admin login (`ADMIN_EMAIL`) still uses the old Gmail address on purpose; change it only together with the Firebase admin account.
 - [ ] **Physical address.** The ECT Act (section 43) asks online businesses to publish a physical address and an address for legal notices. Add `address.street` and `address.postalCode` when you have one you're comfortable publishing.
 - [ ] **Read the Terms of Service and Privacy Policy** (`/terms`, `/privacy`). They are a solid starting draft written for South African law (CPA, ECT Act, POPIA), but they make commitments on your behalf: 50/50 payments, two design revision rounds, 30 days' free support, the refund rules, a 3-month repair warranty. Change anything that doesn't match how you work, and have someone with legal knowledge look them over if you can.
 - [ ] **Check the prices** in `src/config/pricing.js`. The old site showed different prices on different pages: the Pricing page said R3,400 / R3,800 / R4,400 / R8,600, the Services page said R3,200 / R3,500 / R4,300 / R8,000. The advertised ranges (R2,800–R4,300 and R6,000–R8,000) matched the second set, so that is what's live now.

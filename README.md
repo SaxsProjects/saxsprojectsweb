@@ -79,6 +79,6 @@ Issues and pull requests are welcome. See the organisation's [contributing guide
 ## Contact
 
 - Website: https://www.saxsprojects.co.za
-- Email: saxsprojects.dev@gmail.com
+- Email: info@saxsprojects.co.za
 
 © SAXS Projects. All rights reserved.
