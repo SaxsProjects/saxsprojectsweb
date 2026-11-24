@@ -29,6 +29,8 @@ const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'saxs.solutions25@gmail.com').toLowerCase();
+// Customer-facing address (email footers, reply-to, where new leads go by default).
+const BUSINESS_EMAIL = (process.env.BUSINESS_EMAIL || 'info@saxsprojects.co.za').toLowerCase();
 // Mock auth (unsigned tokens / raw emails) is ONLY for local development and
 // must be switched on explicitly. It is always off in production.
 const ALLOW_MOCK_AUTH = !IS_PRODUCTION && process.env.ALLOW_MOCK_AUTH === 'true';
@@ -314,7 +316,7 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
 // 4. CONSULTATION CONFIRMATION EMAIL
 // ========================================================
 const sendBookingEmail = async (booking) => {
-  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
+  const ownerEmail = process.env.INQUIRY_RECIPIENT_EMAIL || BUSINESS_EMAIL;
   const name = escapeHtml(booking.name);
   const when = booking.startsAt.toLocaleString('en-ZA', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -331,7 +333,7 @@ const sendBookingEmail = async (booking) => {
       <p>Your consultation is booked for <strong>${escapeHtml(when)} (SAST)</strong>.</p>
       ${how}
       <p>The calendar invite is attached. Need to change the time? Just reply to this email or WhatsApp us on +27 61 399 1212.</p>
-      <p style="color:#888; font-size:12px; margin-top:24px;">SaxsProjects · ${escapeHtml(ADMIN_EMAIL)} · 071 413 5824 / 061 399 1212</p>
+      <p style="color:#888; font-size:12px; margin-top:24px;">SaxsProjects · ${escapeHtml(BUSINESS_EMAIL)} · 071 413 5824 / 061 399 1212</p>
     </div>`;
   const ics = buildIcs({
     uid: `booking-${booking._id}@saxsprojects.co.za`,
@@ -340,7 +342,7 @@ const sendBookingEmail = async (booking) => {
     summary: 'SaxsProjects free 15-minute consultation',
     description: `Consultation with ${booking.name}.${booking.meetLink ? ` Google Meet: ${booking.meetLink}` : ''}${booking.phone ? ` Phone: ${booking.phone}` : ''}`,
     location: booking.meetLink || (booking.phone ? `Phone: ${booking.phone}` : 'Online'),
-    organizerEmail: process.env.SMTP_FROM || process.env.SMTP_USER || ADMIN_EMAIL,
+    organizerEmail: process.env.SMTP_FROM || process.env.SMTP_USER || BUSINESS_EMAIL,
     organizerName: 'SaxsProjects',
     attendeeEmail: booking.email,
   });
@@ -368,60 +370,22 @@ const sendBookingEmail = async (booking) => {
 // ========================================================
 const runAIEngine = async (question) => {
   const apiKey = process.env.GEMINI_API_KEY;
-  const systemPrompt = `You are the SaxsProjects AI Assistant - EXCLUSIVELY answering questions about SaxsProjects services and offerings only.
-  
-IMPORTANT CONSTRAINT: You ONLY answer questions about SaxsProjects and our digital services. You refuse to answer any questions not related to SaxsProjects, web development services, or our company offerings. For off-topic questions, politely redirect to SaxsProjects services.
+  const systemPrompt = `You are the SaxsProjects assistant. Only answer questions about SaxsProjects and its services; politely redirect anything else.
 
-Company Information:
-- SaxsProjects: Premium digital architecture and custom software solutions
-- Founded by qualified software developer with focus on high-quality, fast delivery
-- Technologies: React, Vite, Node.js, MongoDB, Firebase, Google APIs
-- Location/Contact: South Africa, +27 714 135 824 / +27 613 991 212, info@saxsprojects.co.za
-
-Services & Pricing (ZAR - South African Rand):
-WEBSITES:
-- Standard Website (No Database): R2,800 (Deposit R1,400, 10 days)
-- Standard Website (With Database): R3,400 (Deposit R1,700, 14 days)
-- Top Tier Website (No Database): R3,800 (Deposit R1,900, 16 days)
-- Top Tier Website (With Database): R4,400 (Deposit R2,200, 20 days)
-
-WEB APPLICATIONS:
-- Small Data Scale: R5,000 (Deposit R2,500, 21 days)
-- Big Data Scale: R5,500 (Deposit R2,750, 28 days)
-
-MOBILE APPS (Cross-platform iOS + Android):
-- Mobile App (No Cloud Database): R6,000 (Deposit R3,000, 21 days)
-- Mobile App (With Cloud Database): R8,600 (Deposit R4,300, 30 days)
-
-FEATURES INCLUDED:
-- Full responsive design
-- SEO optimization
-- User authentication
-- Admin dashboard
-- Real-time notifications (Firebase)
-- Data management (MongoDB)
-- 30-day post-launch support
-- Google Meet consultation (15-min free initial call)
-
-BOOKING & CONTACT:
-- Free 15-minute technical consultation: Book via Contact page (Mon-Sat, 09:30-16:30 SAST)
-- Email: info@saxsprojects.co.za
-- WhatsApp: https://wa.me/27613991212
-- Direct Call: 0714135824 (Primary) / 0613991212 (Support)
-
-Response Guidelines:
-- Keep answers SHORT and direct (1-2 sentences maximum)
-- Always include pricing in ZAR
-- Suggest booking a consultation for complex questions
-- Mention relevant features for queries
-- Redirect non-SaxsProjects questions politely but firmly
-- Be professional, friendly, and enthusiastic about our services`;
+Facts (do not invent anything beyond these):
+- SaxsProjects is a South African software studio in Thohoyandou, Limpopo, serving clients across South Africa remotely.
+- Services: business websites, custom web applications, Android/iOS apps, database design, computer and laptop repairs and software updates, and learning support (tutoring and coding mentorship) for students.
+- Pricing: we don't publish prices. Every client gets a free, fixed written quotation after a short chat about what they need. Payment is a 50% deposit to start and 50% before launch.
+- Free 15-minute consultation: book on the website's Contact page, Monday to Friday, 09:30-16:30 SAST.
+- Contact: ${BUSINESS_EMAIL}, phone 071 413 5824, WhatsApp +27 61 399 1212.
+- We reply within one business day.
+Never quote a price, promise a deadline, or agree to terms; say the written quotation will confirm those.`;
 
   if (apiKey) {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+      const model = genAI.getGenerativeModel({
+        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
         systemInstruction: systemPrompt
       });
       const result = await model.generateContent(question);
@@ -431,35 +395,21 @@ Response Guidelines:
     }
   }
 
-  // Smart local NLP matching engine fallback (SaxsProjects-only)
-  const cleanInput = question.toLowerCase();
-  
-  // Check if question is about SaxsProjects services
-  const isSaxsQuestion = cleanInput.match(/saxs|website|web app|mobile|app|price|cost|timeline|booking|consultation|feature|database|react|node|firebase|mongodb/);
-  
-  if (!isSaxsQuestion) {
-    return "I'm the SaxsProjects AI Assistant, and I only answer questions about SaxsProjects services, web development, and our digital solutions. Ask me about our websites, web apps, mobile apps, pricing, or booking a consultation!";
+  // Simple keyword fallback (no AI key configured, or the AI call failed)
+  const q = String(question || '').toLowerCase();
+  if (/(cost|price|pricing|rate|fee|zar|rand|how much|quote)/.test(q)) {
+    return `Every project is different, so we give each client a free, fixed written quotation. Tell us what you need on the Contact page, by WhatsApp (+27 61 399 1212) or at ${BUSINESS_EMAIL}, and we'll reply within one business day.`;
   }
-
-  if (cleanInput.includes("cost") || cleanInput.includes("price") || cleanInput.includes("pricing") || cleanInput.includes("rate") || cleanInput.includes("fee") || cleanInput.includes("zar") || cleanInput.includes("rand")) {
-    return "💰 SaxsProjects Pricing: Websites R2,800-R4,400 ZAR, Web Apps R5,000-R5,500 ZAR, Mobile Apps R6,000-R8,600 ZAR. All include 50% deposit upfront, 50% on completion. Use our Pricing Calculator or book a free consultation!";
-  } else if (cleanInput.includes("website") || cleanInput.includes("site")) {
-    return "🌐 We build premium websites starting at R2,800 ZAR (Standard, no DB) to R4,400 ZAR (Top Tier with DB). All include SEO optimization, responsive design, admin control, and 30-day support. 10-20 day timeline.";
-  } else if (cleanInput.includes("web app") || cleanInput.includes("webapp") || cleanInput.includes("portal") || cleanInput.includes("dashboard")) {
-    return "📊 Custom Web Applications: R5,000-R5,500 ZAR. Build interactive dashboards, client portals, booking systems, and inventory trackers with live data sync. 21-28 day delivery.";
-  } else if (cleanInput.includes("mobile") || cleanInput.includes("iphone") || cleanInput.includes("android")) {
-    return "📱 Cross-platform Mobile Apps (iOS + Android): R6,000 (no DB) or R8,600 (with Cloud DB). Full app store ready with real-time notifications and user authentication. 21-30 day timeline.";
-  } else if (cleanInput.includes("timeline") || cleanInput.includes("duration") || cleanInput.includes("days") || cleanInput.includes("fast")) {
-    return "⚡ SaxsProjects delivers fast: Websites in 10-20 days, Web Apps in 21-28 days, Mobile Apps in 21-30 days. Timeline depends on project scope. Book a consultation to discuss your timeline!";
-  } else if (cleanInput.includes("database") || cleanInput.includes("db") || cleanInput.includes("mongodb") || cleanInput.includes("firebase")) {
-    return "🔄 We use Firebase (real-time notifications) + MongoDB (structured data). Database options add R600 ZAR to website/mobile projects. Hybrid architecture ensures speed and scalability.";
-  } else if (cleanInput.includes("consult") || cleanInput.includes("booking") || cleanInput.includes("call") || cleanInput.includes("meeting")) {
-    return "📞 Free 15-minute consultation available Monday-Saturday, 09:30-16:30 SAST. Book via Contact page, email info@saxsprojects.co.za, or WhatsApp +27 613 991 212. Let's discuss your project!";
-  } else if (cleanInput.includes("hello") || cleanInput.includes("hi") || cleanInput.includes("hey") || cleanInput.includes("sup")) {
-    return "👋 Hi! I'm the SaxsProjects AI Assistant. I help with questions about our websites, web apps, mobile apps, pricing, and booking consultations. What can I help you build today?";
-  } else {
-    return "🚀 I'm the SaxsProjects Assistant - ask me about websites (R2,800+), web apps (R5,000+), mobile apps (R6,000+), features, timelines, or book your free 15-min consultation!";
+  if (/(consult|book|call|meeting|appointment)/.test(q)) {
+    return 'You can book a free 15-minute consultation on our Contact page, Monday to Friday, 09:30-16:30 (SAST). You will get a calendar invite by email.';
   }
+  if (/(website|web app|mobile|app|database|repair|laptop|tutor|mentor|learning)/.test(q)) {
+    return 'We build business websites, web apps and mobile apps, design databases, repair and update computers, and offer tutoring and coding mentorship. Tell us a little about what you need and we will send you a written quotation.';
+  }
+  if (/^(hi|hello|hey|good (morning|afternoon|evening))\b/.test(q)) {
+    return 'Hi! Thanks for getting in touch with SaxsProjects. How can we help you today?';
+  }
+  return `Thanks for your message. A member of the SaxsProjects team will reply within one business day. For anything urgent, WhatsApp us on +27 61 399 1212.`;
 };
 
 // ========================================================
@@ -680,7 +630,7 @@ app.post('/api/projects', authMiddleware, adminOnly, async (req, res) => {
         tier: tier || 'Standard Tier',
         progress: progress || 0,
         status: status || 'Initiated',
-        cost: cost || 'R2,800 ZAR',
+        cost: cost || 'To be quoted',
         timeline: timeline || '10 Days',
         milestones: milestones || []
       });
@@ -951,7 +901,7 @@ const sendInquiryEmail = async (adminEmail, rawClientEmail, rawClientName, rawBi
       <p style="font-size: 14px; line-height: 1.6; color: #8da2bb;">In the meantime, feel free to reach out directly:</p>
       
       <div style="background: #0b1626; padding: 15px; border-radius: 8px; margin: 15px 0;">
-        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(ADMIN_EMAIL)}</p>
+        <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📧 Email:</strong> ${escapeHtml(BUSINESS_EMAIL)}</p>
         <p style="margin: 0 0 8px 0; color: #dbe4ef;"><strong>📞 Phone:</strong> 071 413 5824 (Primary) / 061 399 1212 (Support)</p>
         <p style="margin: 0; color: #dbe4ef;"><strong>💬 WhatsApp:</strong> +27 61 399 1212</p>
       </div>
@@ -1065,7 +1015,7 @@ app.post('/api/inquiries', publicFormLimiter, async (req, res) => {
     });
 
     // Send emails (inquiry recipient notification + auto-reply to client)
-    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || ADMIN_EMAIL;
+    const inquiryEmail = process.env.INQUIRY_RECIPIENT_EMAIL || BUSINESS_EMAIL;
     try {
       await sendInquiryEmail(inquiryEmail, email.toLowerCase(), name, bizName, details, activeQuote, { phone, service });
     } catch (emailErr) {
