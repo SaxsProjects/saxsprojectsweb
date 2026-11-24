@@ -40,7 +40,7 @@ export default function Terms() {
 
       <h2>2. Quotes and prices</h2>
       <ul>
-        <li>Prices on this website and from our quote calculator are estimates to help you plan.</li>
+        <li>This website does not list prices. The price for your work is set out in a written quotation.</li>
         <li>Before any work or payment, we send you a written quote with the scope, price and timeline. That quote is what you agree to.</li>
         <li>Quotes are valid for 30 days unless the quote says otherwise.</li>
         <li>{priceNote()}</li>

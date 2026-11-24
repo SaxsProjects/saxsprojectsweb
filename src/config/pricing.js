@@ -1,7 +1,8 @@
 // ============================================================================
 // SaxsProjects — price list (single source of truth)
 // ----------------------------------------------------------------------------
-// The Pricing page, the quote calculator, the Tech Solutions and Learning
+// Internal reference only: the website no longer shows prices (founder decision
+// 2026-11-24, every client gets a written quotation). The Tech Solutions and Learning
 // Support pages and the Terms of Service all read from here, so a price only
 // ever needs changing in one place. Amounts are whole Rands.
 // ============================================================================

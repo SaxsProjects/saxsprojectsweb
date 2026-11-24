@@ -19,7 +19,7 @@ export const PAGES = [
     nav: true,
     title: 'Tech Solutions — Websites, Web Apps, Mobile Apps & Repairs | SaxsProjects',
     description:
-      'Business websites from R2,800, custom web applications, Android and iOS apps, database design, software updates and laptop repairs. Fixed scopes and clear timelines.',
+      'Business websites, custom web applications, Android and iOS apps, database design, software updates and laptop repairs. Fixed scopes and clear timelines.',
   },
   {
     key: 'products',
@@ -38,15 +38,6 @@ export const PAGES = [
     title: 'Learning Support — Tutoring & Coding Mentorship | SaxsProjects',
     description:
       'One-on-one tutoring, programming mentorship, assignment strategy and tech setup for students, from a qualified developer and university tutor.',
-  },
-  {
-    key: 'pricing',
-    path: '/pricing',
-    label: 'Pricing',
-    nav: true,
-    title: 'Pricing & Quote Calculator | SaxsProjects',
-    description:
-      'Transparent ZAR pricing for websites, web apps and mobile apps. Build an instant estimate with a 50% deposit / 50% on delivery payment split.',
   },
   {
     key: 'about',
@@ -109,6 +100,7 @@ export const ALIASES = {
   'student-services': 'learning-support',
   services: 'tech-solutions',
   portfolio: 'products',
+  pricing: 'contact',
 };
 
 export const pageByKey = (key) => PAGES.find((p) => p.key === (ALIASES[key] || key));

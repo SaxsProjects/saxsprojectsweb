@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { business, fullAddress, legalName } from './src/config/business.js'
 import { PAGES } from './src/config/pages.js'
-import { formatZAR, highestPrice, lowestPrice } from './src/config/pricing.js'
 
 const esc = (value) =>
   String(value).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -32,7 +31,6 @@ function structuredData() {
       addressCountry: business.address.countryCode,
     },
     areaServed: { '@type': 'Country', name: 'South Africa' },
-    priceRange: `${formatZAR(lowestPrice())} – ${formatZAR(highestPrice())}`,
     currenciesAccepted: 'ZAR',
     openingHoursSpecification: [
       {

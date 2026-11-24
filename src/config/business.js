@@ -115,5 +115,5 @@ export const mailtoLink = (subject, body) => {
 // Prices on the site must include VAT once you are VAT-registered (CPA s23).
 export const priceNote = () =>
   isVatRegistered()
-    ? 'All prices are in South African Rand (ZAR) and include 15% VAT.'
-    : 'All prices are in South African Rand (ZAR). We are not VAT-registered, so no VAT is added.';
+    ? 'Prices are given in a written quotation, in South African Rand (ZAR), and include 15% VAT.'
+    : 'Prices are given in a written quotation, in South African Rand (ZAR). We are not VAT-registered, so no VAT is added.';

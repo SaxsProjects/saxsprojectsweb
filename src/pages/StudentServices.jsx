@@ -173,7 +173,7 @@ export default function StudentServices({ setActiveTab }) {
                   </ul>
                 </div>
                 <div>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-glow)', marginBottom: '1rem' }}>{s.price}</p>
+                  <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary-glow)', marginBottom: '1rem' }}>Price on request</p>
                   <a href={whatsappLink(`Hi SaxsProjects! I'm interested in: ${s.title}.`)} target="_blank" rel="noopener noreferrer" className="neon-glow-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                     Learn More
                   </a>

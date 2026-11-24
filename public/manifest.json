@@ -15,6 +15,6 @@
   ],
   "shortcuts": [
     { "name": "Get a quote", "url": "/contact", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Pricing", "url": "/pricing", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Get a Quote", "url": "/contact", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

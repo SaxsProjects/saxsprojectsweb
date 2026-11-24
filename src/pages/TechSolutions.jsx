@@ -178,7 +178,7 @@ export default function TechSolutions({ setActiveTab }) {
           <div className="trust-badge">
             <ShieldCheck size={20} />
             <div style={{ textAlign: 'left' }}>
-              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Transparent Pricing</p>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Written Quotations</p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>No surprise invoices</p>
             </div>
           </div>
@@ -296,8 +296,8 @@ export default function TechSolutions({ setActiveTab }) {
                     {s.icon}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>FROM</p>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)' }}>{s.range.split('–')[0].trim()}</p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>PRICE</p>
+                    <p style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>Written quote</p>
                   </div>
                 </div>
 

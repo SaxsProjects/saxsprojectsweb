@@ -6,7 +6,6 @@ import Home from './pages/Home';
 import TechSolutions from './pages/TechSolutions';
 import StudentServices from './pages/StudentServices';
 import HowWeWork from './pages/HowWeWork';
-import Pricing from './pages/Pricing';
 import Products from './pages/Products';
 import About from './pages/About';
 import Blog from './pages/Blog';
@@ -148,7 +147,7 @@ function Footer() {
             <li><Link to="/tech-solutions">Websites &amp; Apps</Link></li>
             <li><Link to="/tech-solutions">Repairs &amp; Software</Link></li>
             <li><Link to="/learning-support">Learning Support</Link></li>
-            <li><Link to="/pricing">Pricing &amp; Calculator</Link></li>
+            <li><Link to="/contact">Request a Quote</Link></li>
           </ul>
         </div>
 
@@ -257,7 +256,6 @@ export default function App() {
             <Route path="/tech-solutions" element={<TechSolutions setActiveTab={goTo} />} />
             <Route path="/products" element={<Products setActiveTab={goTo} />} />
             <Route path="/learning-support" element={<StudentServices setActiveTab={goTo} />} />
-            <Route path="/pricing" element={<Pricing setActiveTab={goTo} setPrefilledQuote={setActiveQuote} />} />
             <Route path="/how-we-work" element={<HowWeWork setActiveTab={goTo} />} />
             <Route path="/about" element={<About setActiveTab={goTo} />} />
             <Route path="/blog" element={<Blog setActiveTab={goTo} />} />

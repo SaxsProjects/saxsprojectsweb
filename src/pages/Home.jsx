@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { whatsappLink } from '../config/business';
-import { formatZAR, lowestPrice } from '../config/pricing';
 import { Sparkles, ArrowRight, ShieldCheck, Clock, MessageSquare, Users, BookOpen, Code, Settings } from 'lucide-react';
 import ownerPhoto from '../assets/owner-photo.jpeg';
 
@@ -13,7 +12,7 @@ export default function Home({ setActiveTab }) {
     { metric: "50+", label: "Clients Served" },
     { metric: "100+", label: "Students Helped" },
     { metric: "10+", label: "Subjects Covered" },
-    { metric: `From ${formatZAR(lowestPrice())}`, label: "Clear ZAR Pricing" }
+    { metric: "Free", label: "Written Quotations" }
   ];
 
   return (
