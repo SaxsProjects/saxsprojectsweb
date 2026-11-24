@@ -171,7 +171,12 @@ export default function AdminDashboard() {
 
     try {
       const { signInWithEmailAndPassword } = await import('firebase/auth');
-      await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+      const cred = await signInWithEmailAndPassword(auth, email.toLowerCase(), password);
+      if (cred.user.uid !== business.adminUid) {
+        await auth.signOut();
+        setError('This account does not have admin access.');
+        return;
+      }
       setIsLoggedIn(true);
       setError('');
     } catch (err) {

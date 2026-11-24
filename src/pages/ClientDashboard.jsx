@@ -6,7 +6,6 @@ import { auth, db } from '../../firebase-config';
 import { business } from '../config/business';
 import { API_BASE_URL } from '../lib/api';
 
-const ADMIN_EMAIL = business.adminEmail;
 
 export default function ClientDashboard() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -64,7 +63,7 @@ export default function ClientDashboard() {
         setIsLoggedIn(true);
         
         // Only the admin account (business.adminEmail) gets the admin view
-        const isUserAdmin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+        const isUserAdmin = user.uid === business.adminUid;
         if (isUserAdmin) {
           setIsAdminView(true);
         } else {
@@ -706,7 +705,7 @@ export default function ClientDashboard() {
     <div className="dashboard-container fade-in container section-padding" style={{ position: 'relative' }}>
       
       {/* Developer View Toggle Trigger (admin account only) */}
-      {email.toLowerCase() === ADMIN_EMAIL.toLowerCase() && (
+      {auth.currentUser?.uid === business.adminUid && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1.5rem' }}>
           <button 
             onClick={() => setIsAdminView(!isAdminView)}
