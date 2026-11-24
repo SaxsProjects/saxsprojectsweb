@@ -33,8 +33,8 @@ VITE v5.x.x  ready in XXX ms
 
 | Role | Email | Password |
 |------|-------|----------|
-| Client | demo@example.com | SaxsDemo2026! |
-| Admin | saxs.solutions25@gmail.com | SaxsDemo2026! |
+| Client | demo@example.com | (set in Firebase; not stored here) |
+| Admin | saxs.solutions25@gmail.com | (set in Firebase; not stored here) |
 
 ---
 
