@@ -1,16 +1,39 @@
 version: 2
 updates:
+  # Routine minor and patch updates arrive as one grouped pull request per folder each week,
+  # instead of one pull request per package. Major versions still come one at a time, because
+  # they can break things and need a closer look. Security updates are not delayed by grouping.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+      day: monday
+      timezone: Africa/Johannesburg
     open-pull-requests-limit: 5
+    groups:
+      frontend-routine:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: npm
     directory: /backend
     schedule:
       interval: weekly
+      day: monday
+      timezone: Africa/Johannesburg
     open-pull-requests-limit: 5
+    groups:
+      backend-routine:
+        update-types:
+          - minor
+          - patch
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
