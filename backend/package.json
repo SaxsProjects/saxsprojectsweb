@@ -18,7 +18,7 @@
     "googleapis": "^137.1.0",
     "mongodb": "^7.2.0",
     "mongoose": "^9.6.2",
-    "nodemailer": "^6.9.13",
+    "nodemailer": "^10.1.4",
     "openai": "^4.38.3"
   },
   "engines": {
