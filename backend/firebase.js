@@ -1,4 +1,5 @@
-import admin from 'firebase-admin';
+import { cert, getApp, getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import path from 'path';
 import fs from 'fs';
@@ -28,12 +29,12 @@ export function loadServiceAccount() {
 
 let firebaseAdminActive = false;
 
-if (!admin.apps.length) {
+if (!getApps().length) {
   try {
     const serviceAccount = loadServiceAccount();
     if (serviceAccount) {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
+      initializeApp({
+        credential: cert(serviceAccount),
         databaseURL: "https://saxsprojects-6a7eb.firebaseio.com"
       });
       firebaseAdminActive = true;
@@ -49,9 +50,9 @@ if (!admin.apps.length) {
 }
 
 // Export the auth and firestore service instances and admin references
-export const auth = firebaseAdminActive ? admin.auth() : null;
-export const db = firebaseAdminActive ? getFirestore(admin.app(), 'saxsprojects') : null;
-export { admin, firebaseAdminActive };
+export const auth = firebaseAdminActive ? getAuth() : null;
+export const db = firebaseAdminActive ? getFirestore(getApp(), 'saxsprojects') : null;
+export { firebaseAdminActive };
 
 /**
  * Verifies the Firebase ID token and returns the UID
@@ -60,23 +61,8 @@ export { admin, firebaseAdminActive };
  */
 export async function verifyUserToken(token) {
   if (!firebaseAdminActive || !auth) {
-    try {
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-        const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
-        const payload = JSON.parse(payloadJson);
-        const uid = payload.user_id || payload.sub;
-        if (!uid) throw new Error('No UID in payload');
-        return uid;
-      } else if (token.includes('@')) {
-        return token;
-      } else {
-        throw new Error('Invalid token');
-      }
-    } catch (e) {
-      throw new Error('Invalid token', { cause: e });
-    }
+    // Never trust an unverified token: without the Admin SDK there is no way to check a signature.
+    throw new Error('Authentication is not configured on this server');
   }
 
   try {

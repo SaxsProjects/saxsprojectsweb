@@ -2,7 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { admin, auth, db, firebaseAdminActive, loadServiceAccount } from './firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
+import { auth, db, firebaseAdminActive, loadServiceAccount } from './firebase.js';
 import { sendMail, smtpConfigured } from './mailer.js';
 import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -224,12 +225,11 @@ const generateGoogleMeetLink = async (dateTimeString, attendeeEmail) => {
   if (!googleAuthClient && process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
     try {
       const privateKey = process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n');
-      googleAuthClient = new google.auth.JWT(
-        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        null,
-        privateKey,
-        ['https://www.googleapis.com/auth/calendar']
-      );
+      googleAuthClient = new google.auth.JWT({
+        email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        key: privateKey,
+        scopes: ['https://www.googleapis.com/auth/calendar'],
+      });
       console.log(`✅ Using service account JWT from environment variables (${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL})`);
     } catch (err) {
       console.error('❌ Error initializing Google Calendar API JWT from environment variables:', err.message);
@@ -541,7 +541,7 @@ if (firebaseAdminActive) {
                   sender: docId.startsWith('public_') ? 'support' : 'dev',
                   text: replyText,
                   time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                  timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                  timestamp: FieldValue.serverTimestamp(),
                   isProcessed: true
                 });
                 console.log(`Dispatched AI autoresponse to ${docId} successfully.`);
