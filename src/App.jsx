@@ -11,6 +11,7 @@ import About from './pages/About';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
+import Paia from './pages/Paia';
 import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 import FloatingWhatsApp from './components/FloatingWhatsApp';
@@ -209,7 +210,7 @@ function Footer() {
           {isVatRegistered() && <> · VAT No. {reg.vatNumber}</>}
         </p>
         <p>
-          <Link to="/privacy">Privacy Policy</Link> · <Link to="/terms">Terms of Service</Link>
+          <Link to="/privacy">Privacy Policy</Link> · <Link to="/paia">PAIA Manual</Link> · <Link to="/terms">Terms of Service</Link>
         </p>
       </div>
     </footer>
@@ -254,6 +255,7 @@ export default function App() {
               element={<Contact activeQuote={activeQuote} clearActiveQuote={() => setActiveQuote(null)} />}
             />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/paia" element={<Paia />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/dashboard" element={<ClientDashboard />} />
             {Object.entries(ALIASES).map(([oldKey, newKey]) => (
