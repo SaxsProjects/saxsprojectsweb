@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MessageCircle, Send, Calendar, Clock, CheckCircle2, X, MapPin } from 'lucide-react';
 import { business, fullAddress, mailtoLink, whatsappLink } from '../config/business';
-import { hasBackend, postJSON } from '../lib/api';
+import { canSendEnquiry, hasBackend, postJSON, sendEnquiry } from '../lib/api';
 import { CONSULT_SLOTS, isSlotOpen, slotDateTimeString, upcomingBusinessDays } from '../lib/schedule';
 
 const SERVICE_OPTIONS = [
@@ -105,7 +105,7 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
 
     const channel = e.nativeEvent?.submitter?.value || 'whatsapp';
 
-    if (!hasBackend) {
+    if (!canSendEnquiry) {
       handOff(channel, inquiryText(), `Quote request from ${name.trim()}`);
       setInquiryStatus('handoff');
       return;
@@ -113,7 +113,7 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
 
     setInquiryStatus('sending');
     try {
-      await postJSON('/inquiries', {
+      await sendEnquiry({
         email: email.trim().toLowerCase(),
         name: name.trim(),
         phone: phone.trim(),
@@ -362,7 +362,7 @@ export default function Contact({ activeQuote, clearActiveQuote }) {
                 </div>
               )}
 
-              {hasBackend ? (
+              {canSendEnquiry ? (
                 <button type="submit" className="neon-glow-btn" disabled={inquiryStatus === 'sending'} style={{ justifyContent: 'center' }}>
                   {inquiryStatus === 'sending' ? 'Sending…' : 'Send enquiry'} <Send size={14} aria-hidden="true" />
                 </button>
