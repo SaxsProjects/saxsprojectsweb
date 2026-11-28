@@ -9,8 +9,6 @@ import { google } from 'googleapis';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import axios from 'axios';
-import { getAuthUrl } from './googleAuth.js';
 
 // Schema imports
 import Client from './models/Client.js';
@@ -35,7 +33,6 @@ const ADMIN_UID = (process.env.ADMIN_UID || '').trim() || null;
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || (IS_PRODUCTION ? '' : 'admin@saxsprojects.co.za')).trim().toLowerCase();
 // Address shown to clients in emails (the admin login stays private).
 const PUBLIC_EMAIL = process.env.PUBLIC_EMAIL || 'info@saxsprojects.co.za';
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 // Mock auth (unsigned tokens / raw emails) is ONLY for local development and
 // must be switched on explicitly. It is always off in production.
 const ALLOW_MOCK_AUTH = !IS_PRODUCTION && process.env.ALLOW_MOCK_AUTH === 'true';
@@ -1295,134 +1292,8 @@ app.delete('/api/admin/clients/:email', authMiddleware, adminOnly, async (req, r
 // 8.5. GOOGLE OAUTH 2.0 AUTHENTICATION
 // ========================================================
 // Exchange authorization code for tokens
-app.post('/api/auth/google', async (req, res) => {
-  const { code } = req.body;
-
-  if (!code) {
-    return res.status(400).json({ error: 'Authorization code is required' });
-  }
-
-  try {
-    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: req.headers['x-redirect-uri'] || `${FRONTEND_URL}/callback`,
-      grant_type: 'authorization_code'
-    });
-
-    const { access_token, id_token, refresh_token } = tokenResponse.data;
-
-    // Get user info from Google
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${access_token}` }
-    });
-
-    const { email, name, picture, id: googleId } = userInfoResponse.data;
-
-    // Create or update client in database
-    let client = await Client.findOne({ email: email.toLowerCase() });
-    
-    if (!client) {
-      client = new Client({
-        name,
-        email: email.toLowerCase(),
-        phone: '',
-        googleId,
-        profilePicture: picture,
-        createdAt: new Date()
-      });
-      await client.save();
-    } else {
-      // Update existing client with Google info
-      client.googleId = googleId;
-      client.profilePicture = picture;
-      await client.save();
-    }
-
-    // Prepare response
-    res.status(200).json({
-      success: true,
-      user: {
-        id: client._id,
-        email: client.email,
-        name: client.name,
-        picture: client.profilePicture,
-        googleId
-      },
-      tokens: {
-        access_token,
-        id_token,
-        refresh_token
-      }
-    });
-  } catch (error) {
-    console.error('Google OAuth Error:', error.response?.data || error.message);
-    res.status(401).json({ 
-      error: 'Authentication failed',
-      details: error.response?.data || error.message
-    });
-  }
-});
-
-// Google OAuth callback handler (handles redirect from Google)
-app.get('/api/auth/google/callback', async (req, res) => {
-  const { code, error } = req.query;
-
-  if (error) {
-    return res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent(error)}`);
-  }
-
-  if (!code) {
-    return res.redirect(`${FRONTEND_URL}/dashboard?error=No+authorization+code+received`);
-  }
-
-  try {
-    // Import and use the getTokens function from googleAuth
-    const { getTokens } = await import('./googleAuth.js');
-    const tokens = await getTokens(code);
-
-    // Get user info from Google
-    const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: { Authorization: `Bearer ${tokens.access_token}` }
-    });
-
-    const { email, name, picture, id: googleId } = userInfoResponse.data;
-
-    // Create or update client in database
-    let client = await Client.findOne({ email: email.toLowerCase() });
-    
-    if (!client) {
-      client = new Client({
-        name,
-        email: email.toLowerCase(),
-        phone: '',
-        googleId,
-        profilePicture: picture,
-        createdAt: new Date()
-      });
-      await client.save();
-    } else {
-      client.googleId = googleId;
-      client.profilePicture = picture;
-      await client.save();
-    }
-
-    // Redirect to frontend with tokens as query params
-    const frontendUrl = `${FRONTEND_URL}/callback?` + new URLSearchParams({
-      access_token: tokens.access_token,
-      id_token: tokens.id_token,
-      refresh_token: tokens.refresh_token || '',
-      email: client.email,
-      name: client.name
-    }).toString();
-
-    res.redirect(frontendUrl);
-  } catch (error) {
-    console.error('Google OAuth Callback Error:', error);
-    res.redirect(`${FRONTEND_URL}/dashboard?error=${encodeURIComponent('Authentication failed')}`);
-  }
-});
+// The old custom Google OAuth sign-in (/api/auth/google and its callback) was removed: it was unused,
+// and it returned Google tokens in the page URL. Sign-in is Firebase Authentication only.
 
 // ========================================================
 // 8.6. BLOG MANAGEMENT ENDPOINTS
@@ -1562,7 +1433,6 @@ app.get('/api/admin/blogs', authMiddleware, adminOnly, async (req, res) => {
 // ========================================================
 // 9. SERVER BOOTSTRAP
 // ========================================================
-console.log("Visit this URL to authorize:", getAuthUrl());
 
 app.listen(PORT, () => {
   console.log(`=========================================================`);
