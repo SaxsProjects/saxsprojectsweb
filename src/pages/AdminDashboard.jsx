@@ -6,6 +6,7 @@ import {
 import { auth } from '../../firebase-config';
 import { API_BASE_URL } from '../lib/api';
 import { business } from '../config/business';
+import PasswordInput from '../components/PasswordInput';
 
 const ADMIN_EMAIL = business.adminEmail;
 
@@ -496,8 +497,7 @@ export default function AdminDashboard() {
                 textTransform: 'uppercase',
                 marginBottom: '0.5rem'
               }}>Secure Password</label>
-              <input 
-                type="password" 
+              <PasswordInput
                 placeholder="" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

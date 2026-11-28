@@ -5,6 +5,7 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from 
 import { auth, db } from '../../firebase-config';
 import { business } from '../config/business';
 import { API_BASE_URL } from '../lib/api';
+import PasswordInput from '../components/PasswordInput';
 
 
 export default function ClientDashboard() {
@@ -577,8 +578,7 @@ export default function ClientDashboard() {
           <form onSubmit={handlePasswordSetup} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-glow)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>New Password</label>
-              <input 
-                type="password"
+              <PasswordInput
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 style={{ 
@@ -596,8 +596,7 @@ export default function ClientDashboard() {
 
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-glow)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Confirm Password</label>
-              <input 
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 style={{ 
@@ -678,8 +677,7 @@ export default function ClientDashboard() {
             
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary-glow)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Password</label>
-              <input 
-                type="password" 
+              <PasswordInput
                 placeholder="" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
